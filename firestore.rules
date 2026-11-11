@@ -1,0 +1,156 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isValidTimestamp(ts) {
+      return ts is timestamp;
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow read: if isSignedIn(); // Allow reading profiles for community features
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow delete: if false; // Profiles are permanent for now
+
+      function isValidUser(data) {
+        return data.userId == request.auth.uid
+          && data.displayName is string && data.displayName.size() <= 60
+          && data.role in ['veteran', 'business', 'creator', 'adult', 'student']
+          && data.age is int && data.age >= 13 && data.age <= 120
+          && data.location is string && data.location.size() <= 80
+          && data.bio is string && data.bio.size() <= 300
+          && data.themeColorHex is string && data.themeColorHex.size() <= 9
+          && data.themeVisualStyle is string && data.themeVisualStyle.size() <= 40
+          && data.isDarkMode is bool
+          && data.musicTrackTitle is string && data.musicTrackTitle.size() <= 120
+          && data.musicPlatform is string && data.musicPlatform.size() <= 40
+          && data.savingsBalanceCents is int && data.savingsBalanceCents >= 0
+          && data.savingsGoalCents is int && data.savingsGoalCents >= 0
+          && data.arcadeHighScore is int && data.arcadeHighScore >= 0
+          && data.pledgeAccepted == true
+          && data.phoneNumber is string && data.phoneNumber.size() <= 20
+          && data.interests is list
+          && (request.method == 'create' ? isValidTimestamp(data.createdAt) : true)
+          && isValidTimestamp(data.updatedAt);
+      }
+
+      match /friends/{friendId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidFriend(request.resource.data);
+        allow delete: if isOwner(userId);
+
+        function isValidFriend(data) {
+          return data.friendUserId is string && data.displayName is string
+            && data.avatarEmoji is string && data.role is string
+            && isValidTimestamp(data.createdAt);
+        }
+      }
+
+      // --- Subcollections ---
+
+      match /posts/{postId} {
+        allow read: if isSignedIn(); // Wall posts are public to all users
+        allow create: if isOwner(userId) && isValidPost(request.resource.data);
+        allow update: if isOwner(userId) && isValidPost(request.resource.data);
+        allow delete: if isOwner(userId);
+
+        function isValidPost(data) {
+          return data.userId == request.auth.uid
+            && data.authorName is string && data.authorName.size() <= 60
+            && data.authorRole is string && data.authorRole.size() <= 30
+            && data.category in ['Update', 'Resource Guide', 'Studio Art', 'Milestone']
+            && data.title is string && data.title.size() <= 100
+            && data.content is string && data.content.size() <= 1000
+            && data.likesCount is int && data.likesCount >= 0
+            && data.accentHex is string && data.accentHex.size() <= 9
+            && (request.method == 'create' ? isValidTimestamp(data.createdAt) : true)
+            && isValidTimestamp(data.updatedAt);
+        }
+      }
+
+      match /budget_entries/{entryId} {
+        allow read, write: if isOwner(userId);
+
+        function isValidBudgetEntry(data) {
+          return data.userId == request.auth.uid
+            && data.title is string && data.title.size() <= 80
+            && data.category in ['Save', 'Spend', 'Give', 'Goal']
+            && data.amountCents is int && data.amountCents > 0
+            && isValidTimestamp(data.createdAt);
+        }
+      }
+
+      match /interactions/{interactionId} {
+        allow read, write: if isOwner(userId);
+
+        function isValidInteraction(data) {
+          return data.userId == request.auth.uid
+            && data.actionType is string && data.actionType.size() <= 30
+            && data.detail is string && data.detail.size() <= 200
+            && data.category is string && data.category.size() <= 50
+            && isValidTimestamp(data.createdAt);
+        }
+      }
+
+      match /career_milestones/{milestoneId} {
+        allow read, write: if isOwner(userId);
+
+        function isValidMilestone(data) {
+          return data.userId == request.auth.uid
+            && data.title is string && data.title.size() <= 120
+            && data.stage in ['Foundation', 'Academic', 'Application', 'Internship', 'Career Launch']
+            && data.description is string && data.description.size() <= 400
+            && data.targetTerm is string && data.targetTerm.size() <= 40
+            && data.status in ['Upcoming', 'In Progress', 'Completed']
+            && data.xpReward is int && data.xpReward >= 10
+            && data.stepOrder is int && data.stepOrder >= 1
+            && data.portalUrl is string && data.portalUrl.size() <= 300
+            && (request.method == 'create' ? isValidTimestamp(data.createdAt) : true)
+            && isValidTimestamp(data.updatedAt);
+        }
+      }
+    }
+
+    // --- Friend Requests Collection ---
+    match /friend_requests/{requestId} {
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId);
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.fromUserId && isValidRequest(request.resource.data);
+      allow update: if isSignedIn() && request.auth.uid == resource.data.toUserId && isValidRequest(request.resource.data);
+      allow delete: if isSignedIn() && (request.auth.uid == resource.data.fromUserId || request.auth.uid == resource.data.toUserId);
+
+      function isValidRequest(data) {
+        return (data.fromUserId == request.auth.uid || data.toUserId == request.auth.uid)
+          && data.fromUserId is string && data.fromName is string
+          && data.fromAvatarEmoji is string && data.toUserId is string
+          && data.status in ['pending', 'accepted', 'declined']
+          && isValidTimestamp(data.createdAt);
+      }
+    }
+
+    // --- Moderation Flags Collection ---
+    match /moderation_flags/{flagId} {
+      allow read: if false; // Only accessible via backend/admin console
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.reporterUserId && isValidFlag(request.resource.data);
+      allow update, delete: if false;
+
+      function isValidFlag(data) {
+        return data.reporterUserId == request.auth.uid
+          && data.targetId is string && data.targetId.size() > 0
+          && data.targetType in ['post', 'profile', 'comment']
+          && data.reason in ['Spam', 'Harassment', 'Inappropriate', 'Violence', 'Other']
+          && data.detail is string && data.detail.size() <= 500
+          && data.status == 'pending'
+          && isValidTimestamp(data.createdAt);
+      }
+    }
+  }
+}

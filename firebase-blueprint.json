@@ -1,0 +1,146 @@
+{
+  "collections": {
+    "users": {
+      "description": "User profiles and 3D theme preferences",
+      "documents": {
+        "{userId}": {
+          "fields": {
+            "userId": "String",
+            "displayName": "String",
+            "role": "String",
+            "age": "Number",
+            "location": "String",
+            "bio": "String",
+            "themeColorHex": "String",
+            "themeVisualStyle": "String",
+            "isDarkMode": "Boolean",
+            "musicTrackTitle": "String",
+            "musicPlatform": "String",
+            "savingsBalanceCents": "Number",
+            "savingsGoalCents": "Number",
+            "arcadeHighScore": "Number",
+            "pledgeAccepted": "Boolean",
+            "phoneNumber": "String",
+            "interests": "List<String>",
+            "createdAt": "Timestamp",
+            "updatedAt": "Timestamp"
+          },
+          "collections": {
+            "friends": {
+              "description": "User friend list",
+              "documents": {
+                "{friendUserId}": {
+                  "fields": {
+                    "friendUserId": "String",
+                    "displayName": "String",
+                    "avatarEmoji": "String",
+                    "role": "String",
+                    "createdAt": "Timestamp"
+                  }
+                }
+              }
+            },
+            "posts": {
+              "description": "User wall posts and community updates",
+              "documents": {
+                "{postId}": {
+                  "fields": {
+                    "userId": "String",
+                    "authorName": "String",
+                    "authorRole": "String",
+                    "category": "String",
+                    "title": "String",
+                    "content": "String",
+                    "likesCount": "Number",
+                    "accentHex": "String",
+                    "createdAt": "Timestamp",
+                    "updatedAt": "Timestamp"
+                  }
+                }
+              }
+            },
+            "budget_entries": {
+              "description": "Financial literacy tracker entries",
+              "documents": {
+                "{entryId}": {
+                  "fields": {
+                    "userId": "String",
+                    "title": "String",
+                    "category": "String",
+                    "amountCents": "Number",
+                    "createdAt": "Timestamp"
+                  }
+                }
+              }
+            },
+            "interactions": {
+              "description": "User behavior signals for personalized insights",
+              "documents": {
+                "{interactionId}": {
+                  "fields": {
+                    "userId": "String",
+                    "actionType": "String",
+                    "detail": "String",
+                    "category": "String",
+                    "createdAt": "Timestamp"
+                  }
+                }
+              }
+            },
+            "career_milestones": {
+              "description": "Student school and career launch objectives",
+              "documents": {
+                "{milestoneId}": {
+                  "fields": {
+                    "userId": "String",
+                    "title": "String",
+                    "stage": "String",
+                    "description": "String",
+                    "targetTerm": "String",
+                    "status": "String",
+                    "xpReward": "Number",
+                    "stepOrder": "Number",
+                    "portalUrl": "String",
+                    "createdAt": "Timestamp",
+                    "updatedAt": "Timestamp"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "friend_requests": {
+      "description": "Global friend requests queue",
+      "documents": {
+        "{requestId}": {
+          "fields": {
+            "fromUserId": "String",
+            "fromName": "String",
+            "fromAvatarEmoji": "String",
+            "toUserId": "String",
+            "status": "String",
+            "createdAt": "Timestamp"
+          }
+        }
+      }
+    },
+    "moderation_flags": {
+      "description": "User-reported content for moderation",
+      "documents": {
+        "{flagId}": {
+          "fields": {
+            "reporterUserId": "String",
+            "targetId": "String",
+            "targetType": "String",
+            "reason": "String",
+            "detail": "String",
+            "status": "String",
+            "createdAt": "Timestamp"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Stages Of Life",
+  "description": "Stages Of Life — Create Your Life: 3D dimensional pyramid platform featuring Kid, Teen, Student, Adult, Business, and Veteran personas, 3D Avatar Customizer, Financial Literacy, and Community Hub.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

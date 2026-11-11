@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Stages Of Life</string>
+    <string name="app_slogan">Create Your Life</string>
+    <string name="zero_harassment_badge">Zero-Harassment Verified</string>
+    <string name="login_welcome_title">Welcome to Stages Of Life</string>
+    <string name="login_welcome_subtitle">Create Your Life across every stage — Kid, Teen, Student, Adult, Business &amp; Veteran — with 3D Themes, Avatar Studio, Financial Literacy, and Community.</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="switch_to_signup">New here? Create your Stages Of Life Account</string>
+    <string name="switch_to_login">Already have a profile? Back to Login</string>
+    <string name="signup_header_title">Create Your Stages Of Life Account</string>
+    <string name="signup_header_subtitle">Choose your stage of life (Kid, Teen, Student, Adult, Business, or Veteran) and customize your 3D Theme Selection.</string>
+    <string name="complete_signup_google">Agree &amp; Sign Up with Google</string>
+    <string name="save_profile_changes">Save Profile &amp; Enter Dashboard</string>
+    <string name="pledge_title">Stages Of Life Code of Conduct &amp; Equality Standard</string>
+    <string name="pledge_body">I agree to the Stages Of Life Code of Conduct: no bullying, no racist profiles, no sexual misconduct, no nudity unless 18+, and no selling user info. Create Your Life — we are all equal.</string>
+    <string name="search_placeholder">Search Google, school aid, jobs, careers, 211 housing…</string>
+    <string name="google_search_button">Google Search</string>
+    <string name="pull_down_nav_title">Stages Of Life Pull-Down Navigation Bar</string>
+    <string name="nav_profile_feed">Home Hub</string>
+    <string name="nav_theme_profile">Theme Selection</string>
+    <string name="nav_studio_arcade">Studio &amp; Arcade</string>
+    <string name="nav_resources">School &amp; Aid</string>
+    <string name="nav_finance_connect">Wallet &amp; Market</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="default_web_client_id">1040803210617-s343sg55u34c0g05vf1keo47qrv0d9df.apps.googleusercontent.com</string>
+</resources>
