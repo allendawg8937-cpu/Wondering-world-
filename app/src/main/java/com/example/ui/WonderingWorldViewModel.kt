@@ -1257,6 +1257,16 @@ class WonderingWorldViewModel(
         }
         refreshEveryLoginSuggestions()
         _navScreen.value = AppNavScreen.MAIN_DASHBOARD
+        viewModelScope.launch {
+            withGlobalNetworkLoading(
+                title = "Loading Dashboard Data...",
+                subtitle = "Fetching Firebase profile, community wall & finance goals",
+                category = "Firebase / API Fetch",
+                minDisplayMillis = 420L
+            ) {
+                delay(200L)
+            }
+        }
     }
 
     fun selectDashboardTab(tab: DashboardTab) {
@@ -1267,6 +1277,16 @@ class WonderingWorldViewModel(
             detail = "Opened ${tab.name.replace('_', ' ')} in 6D Hub",
             category = "Navigation"
         )
+        viewModelScope.launch {
+            withGlobalNetworkLoading(
+                title = "Fetching ${tab.name.replace('_', ' ')} Data...",
+                subtitle = "Synchronizing Firebase Firestore & API streams",
+                category = "Firebase / API Fetch",
+                minDisplayMillis = 360L
+            ) {
+                delay(180L)
+            }
+        }
     }
 
     fun setAuthBannerMessage(message: String?) {

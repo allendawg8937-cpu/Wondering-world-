@@ -618,6 +618,23 @@ fun MainDashboardScreen(
                                 onSubmitFlagToBackend = onReportContent
                             )
 
+                            // Mainstay Release, Download (APK/AAB/ZIP) & Publish Readiness Hub (v3.0)
+                            com.example.ui.components.PlatformReleaseAndDownloadHubCard(
+                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                onTriggerFullCloudSync = onRefreshLoginSuggestions
+                            )
+
+                            // AppShell Route Table & AuthGuard Outlet Switcher (login, dashboard, profile, finance/goals, '' -> dashboard, '**' -> dashboard)
+                            com.example.ui.components.AuthGuardedAppShellRouterCard(
+                                effectiveScreen = com.example.ui.AppNavScreen.MAIN_DASHBOARD,
+                                activeTab = activeTab,
+                                isAuthenticated = true,
+                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                onNavigateToLogin = onNavigateToEditProfile,
+                                onNavigateToTab = onSelectTab,
+                                onLogout = onSignOut
+                            )
+
                             // Centralized Dynamic Persona Dashboard (Kid, Teen, Student, Adult, Business, Veteran)
                             com.example.ui.components.CentralizedPersonaDynamicDashboardCard(
                                 currentPersonaRole = signUpForm.role.ifBlank { profile.role },
@@ -628,6 +645,32 @@ fun MainDashboardScreen(
                                 onNavigateToTab = onSelectTab,
                                 onShareMilestoneToWall = { title, body ->
                                     onCreatePost("Milestone", title, body)
+                                }
+                            )
+
+                            // Adaptive User-Learning Engine + Gemini AI Research Bot & 6 AI Power Tools
+                            com.example.ui.components.AdaptiveUserLearningAiBotAndToolsCard(
+                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                userRole = signUpForm.role.ifBlank { profile.role },
+                                userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
+                                userLocation = profile.location.ifBlank { signUpForm.location },
+                                learnedSignals = learnedSignals,
+                                learnedInterests = learnedInterests,
+                                learnedLifestyle = learnedLifestyle,
+                                learnedSchedule = learnedSchedule,
+                                learnedResearch = learnedResearch,
+                                aiStudyState = aiStudyState,
+                                aiFlashcardsState = aiFlashcardsState,
+                                aiAdaptivePlanState = aiAdaptivePlanState,
+                                onRecordLearnedSignal = onRecordLearnedSignal,
+                                onAddCustomLearningSignal = onAddCustomLearningSignal,
+                                onToggleLearnedInterest = onToggleLearnedInterest,
+                                onToggleLearnedResearch = onToggleLearnedResearch,
+                                onAskAiStudyTutor = onAskAiStudyTutor,
+                                onGenerateStudyFlashcards = onGenerateStudyFlashcards,
+                                onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
+                                onShareAiResearchToWall = { headline, body ->
+                                    onCreatePost("Resource Guide", headline, body)
                                 }
                             )
 
@@ -746,7 +789,8 @@ fun MainDashboardScreen(
                                 },
                                 onRewardHelpfulVote = {
                                     onRewardHelpfulPostBonus()
-                                }
+                                },
+                                onReportContent = onReportContent
                             )
 
                             // Explore the App Gallery & Remix Studio + Personal API Key Quota Auto-Switch
@@ -1167,6 +1211,33 @@ fun MainDashboardScreen(
                                     isBiometricUnlocked = isResourceHubUnlocked,
                                     onUnlockBiometric = onUnlockResourceHub,
                                     onLockBiometric = onLockResourceHub
+                                )
+
+                                // Adaptive User-Learning AI Research Bot & AI Tools Suite
+                                com.example.ui.components.AdaptiveUserLearningAiBotAndToolsCard(
+                                    userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                    userRole = signUpForm.role.ifBlank { profile.role },
+                                    userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
+                                    userLocation = profile.location.ifBlank { signUpForm.location },
+                                    learnedSignals = learnedSignals,
+                                    learnedInterests = learnedInterests,
+                                    learnedLifestyle = learnedLifestyle,
+                                    learnedSchedule = learnedSchedule,
+                                    learnedResearch = learnedResearch,
+                                    aiStudyState = aiStudyState,
+                                    aiFlashcardsState = aiFlashcardsState,
+                                    aiAdaptivePlanState = aiAdaptivePlanState,
+                                    onRecordLearnedSignal = onRecordLearnedSignal,
+                                    onAddCustomLearningSignal = onAddCustomLearningSignal,
+                                    onToggleLearnedInterest = onToggleLearnedInterest,
+                                    onToggleLearnedResearch = onToggleLearnedResearch,
+                                    onAskAiStudyTutor = onAskAiStudyTutor,
+                                    onGenerateStudyFlashcards = onGenerateStudyFlashcards,
+                                    onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
+                                    onShareAiResearchToWall = { headline, body ->
+                                        onCreatePost("Resource Guide", headline, body)
+                                        onSelectTab(DashboardTab.HUB_3D)
+                                    }
                                 )
 
                                 // Add AI Tools to Settings tab

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ThumbUp
@@ -39,7 +40,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +63,7 @@ import com.example.ui.UiState
 import com.example.ui.theme.CyberEmerald
 import com.example.ui.theme.HoloCyan
 import com.example.ui.theme.NeonPink
+import com.example.ui.theme.RosePulse
 import com.example.ui.theme.SolarAmber
 import com.example.ui.theme.parseThemeHex
 
@@ -154,6 +158,7 @@ fun CommunityLifeStageHubCard(
     onCreateFirestoreTipOrResource: (category: String, title: String, content: String) -> Unit,
     onUpvoteFirestorePost: (WallPost) -> Unit,
     onRewardHelpfulVote: () -> Unit = {},
+    onReportContent: (targetId: String, targetType: String, reason: String, detail: String) -> Unit = { _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val stageFilters = remember {
@@ -164,6 +169,8 @@ fun CommunityLifeStageHubCard(
     var sortByMostUpvoted by rememberSaveable { mutableStateOf(true) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showShareComposer by rememberSaveable { mutableStateOf(false) }
+    var activeReportTarget by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val flaggedIds by ModerationReportQueueManager.flaggedTargetIds.collectAsState()
 
     // Composer fields for sharing directly to Firestore
     var newTipTitle by rememberSaveable { mutableStateOf("") }
@@ -722,11 +729,21 @@ fun CommunityLifeStageHubCard(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(
-                                        text = "Shared by ${item.authorName}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Shared by ${item.authorName}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        if (flaggedIds.contains(item.id) || flaggedIds.contains(item.authorName)) {
+                                            Text(
+                                                text = "🚩 Flagged for Administrator Review",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = RosePulse
+                                            )
+                                        }
+                                    }
 
                                     OutlinedButton(
                                         onClick = {
@@ -767,10 +784,92 @@ fun CommunityLifeStageHubCard(
                                         )
                                     }
                                 }
+
+                                // Content Reporting Actions: Report Post, Report Comment, or Report Profile for Administrator Review
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    TextButton(
+                                        onClick = {
+                                            activeReportTarget = item.id to "Post"
+                                        },
+                                        modifier = Modifier.testTag("community_hub_report_post_${item.id}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Flag,
+                                            contentDescription = "Report Post",
+                                            tint = RosePulse,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Report Post",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = RosePulse,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    TextButton(
+                                        onClick = {
+                                            activeReportTarget = "comment_on_${item.id}" to "Comment"
+                                        },
+                                        modifier = Modifier.testTag("community_hub_report_comment_${item.id}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Flag,
+                                            contentDescription = "Report Comment",
+                                            tint = HoloCyan,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Report Comment",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = HoloCyan,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    TextButton(
+                                        onClick = {
+                                            activeReportTarget = item.authorName to "Profile"
+                                        },
+                                        modifier = Modifier.testTag("community_hub_report_profile_${item.id}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Flag,
+                                            contentDescription = "Report Profile",
+                                            tint = SolarAmber,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Report Profile",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = SolarAmber,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
+            }
+
+            if (activeReportTarget != null) {
+                ReportContentDialog(
+                    targetId = activeReportTarget!!.first,
+                    targetType = activeReportTarget!!.second,
+                    onDismiss = { activeReportTarget = null },
+                    onSubmit = { targetId, targetType, reason, detail ->
+                        statusFeedbackBanner = "🚩 Flagged $targetType ('$targetId') for Administrator Review — Reason: $reason"
+                        onReportContent(targetId, targetType, reason, detail)
+                    }
+                )
             }
         }
     }
