@@ -512,6 +512,18 @@ fun PersonalFinanceGoalsScreen(
             }
         }
 
+        // 1B. Recharts Financial Progress & Savings Milestones Chart Over Time
+        com.example.ui.components.RechartsFinancialProgressChartCard(
+            savingsBalanceDollars = balanceDollars,
+            overallGoalDollars = overallGoalDollars,
+            budgetEntries = allEntries,
+            onAddMilestoneBoostDeposit = { title, category, amountDollars ->
+                onAddGoalEntryToFirestore(title, category, amountDollars)
+                statusBanner = "Added +$${amountDollars.toInt()} Milestone Deposit & updated Recharts curve!"
+            },
+            onShareChartProgressToWall = onShareMilestoneToWall
+        )
+
         // 2. Visual Progress Bars for Tiered Savings Milestones (25%, 50%, 75%, 100%)
         Card(
             shape = RoundedCornerShape(22.dp),

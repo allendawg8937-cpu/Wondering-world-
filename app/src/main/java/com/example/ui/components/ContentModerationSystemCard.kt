@@ -60,10 +60,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
 import com.example.ui.theme.CyberEmerald
 import com.example.ui.theme.HoloCyan
 import com.example.ui.theme.RosePulse
 import com.example.ui.theme.SolarAmber
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 data class ModerationQueueItem(
     val id: String,
@@ -76,6 +81,112 @@ data class ModerationQueueItem(
     val status: String, // "PENDING", "APPROVED", "REMOVED"
     val moderatorResolution: String = ""
 )
+
+object ModerationReportQueueManager {
+    private val _queueItems = MutableStateFlow(
+        listOf(
+            ModerationQueueItem(
+                id = "mod_flag_101",
+                targetId = "post_ext_promo_92",
+                targetType = "Post",
+                contentPreview = "\"Guaranteed 10x crypto return—DM your phone number now!\"",
+                authorLabel = "@unknown_promo_bot",
+                reason = "Spam",
+                reporterNotes = "Soliciting private phone numbers & promoting an unverified scheme.",
+                status = "PENDING"
+            ),
+            ModerationQueueItem(
+                id = "mod_flag_102",
+                targetId = "comment_thread_44",
+                targetType = "Post",
+                contentPreview = "\"Your 3D art project doesn't belong in the Teen Creator showcase.\"",
+                authorLabel = "@critic_account_8",
+                reason = "Harassment",
+                reporterNotes = "Unconstructive hostility on a student's first 3D studio post.",
+                status = "PENDING"
+            ),
+            ModerationQueueItem(
+                id = "mod_flag_103",
+                targetId = "profile_check_19",
+                targetType = "Profile",
+                contentPreview = "Profile Bio: Sharing verified regional 211 Food Bank & VA Clinic hours.",
+                authorLabel = "Marcus Vance (Veteran Guide)",
+                reason = "Inappropriate Content",
+                reporterNotes = "Community requested verification of listed clinic phone hours.",
+                status = "APPROVED",
+                moderatorResolution = "Verified official VA.gov & 211.org hours — Cleared by Moderation Queue."
+            )
+        )
+    )
+    val queueItems: StateFlow<List<ModerationQueueItem>> = _queueItems.asStateFlow()
+
+    private val _flaggedTargetIds = MutableStateFlow<Set<String>>(emptySet())
+    val flaggedTargetIds: StateFlow<Set<String>> = _flaggedTargetIds.asStateFlow()
+
+    private val _latestBanner = MutableStateFlow<String?>(null)
+    val latestBanner: StateFlow<String?> = _latestBanner.asStateFlow()
+
+    fun submitReport(
+        targetId: String,
+        targetType: String,
+        contentPreview: String,
+        authorLabel: String,
+        reason: String,
+        reporterNotes: String
+    ): ModerationQueueItem {
+        val normalizedType = when {
+            targetType.contains("profile", ignoreCase = true) || targetType.contains("user", ignoreCase = true) -> "Profile"
+            targetType.contains("comment", ignoreCase = true) -> "Comment"
+            else -> "Post"
+        }
+        val item = ModerationQueueItem(
+            id = "mod_flag_${System.currentTimeMillis()}",
+            targetId = targetId.ifBlank { "flagged_${normalizedType.lowercase()}" },
+            targetType = normalizedType,
+            contentPreview = contentPreview.ifBlank { "Flagged $normalizedType ($targetId)" },
+            authorLabel = authorLabel.ifBlank { targetId },
+            reason = reason.ifBlank { "Spam" },
+            reporterNotes = reporterNotes.ifBlank { "Flagged by user for administrator review" },
+            status = "PENDING"
+        )
+        _queueItems.update { current -> listOf(item) + current }
+        _flaggedTargetIds.update { current -> current + targetId }
+        _latestBanner.value = "🚩 Flagged $normalizedType ('$authorLabel') for Administrator Review — Reason: $reason"
+        return item
+    }
+
+    fun approveItem(itemId: String) {
+        _queueItems.update { list ->
+            list.map { item ->
+                if (item.id == itemId) {
+                    item.copy(
+                        status = "APPROVED",
+                        moderatorResolution = "Approved & Kept by Platform Administrator (Complies with Equality Guidelines)"
+                    )
+                } else {
+                    item
+                }
+            }
+        }
+        _latestBanner.value = "✅ Administrator approved flagged item ($itemId) and cleared flag."
+    }
+
+    fun removeItem(itemId: String) {
+        _queueItems.update { list ->
+            list.map { item ->
+                if (item.id == itemId) {
+                    item.copy(
+                        status = "REMOVED",
+                        moderatorResolution = "Removed & Author Warned by Platform Administrator per Code of Conduct"
+                    )
+                } else {
+                    item
+                }
+            }
+        }
+        _latestBanner.value = "🛡️ Administrator removed flagged item ($itemId) from public feed."
+    }
+}
 
 val MODERATOR_GUIDELINES = listOf(
     Triple(
@@ -108,49 +219,17 @@ fun ContentModerationSystemCard(
 ) {
     var activeTab by remember { mutableIntStateOf(0) } // 0 = Review Queue (Admin/Community), 1 = Flag Post/Comment/Profile, 2 = Moderator Guidelines
     var queueFilter by remember { mutableStateOf("ALL") } // "ALL", "PENDING", "RESOLVED"
-    var statusBanner by remember { mutableStateOf<String?>(null) }
+    val sharedBanner by ModerationReportQueueManager.latestBanner.collectAsState()
+    var localStatusBanner by remember { mutableStateOf<String?>(null) }
+    val statusBanner = localStatusBanner ?: sharedBanner
 
     // Flag Form State
     var selectedTargetType by remember { mutableStateOf("Post") } // "Post", "Comment", "Profile"
     var targetIdentifierInput by remember { mutableStateOf("") }
-    var selectedFlagReason by remember { mutableStateOf("Spam or Scam Link") }
+    var selectedFlagReason by remember { mutableStateOf("Harassment") }
     var flagDetailsInput by remember { mutableStateOf("") }
 
-    val queueItems = remember {
-        mutableStateListOf(
-            ModerationQueueItem(
-                id = "mod_flag_101",
-                targetId = "post_ext_promo_92",
-                targetType = "Post",
-                contentPreview = "\"Guaranteed 10x crypto return—DM your phone number now!\"",
-                authorLabel = "@unknown_promo_bot",
-                reason = "Spam or Scam Link",
-                reporterNotes = "Soliciting private phone numbers & promoting an unverified scheme.",
-                status = "PENDING"
-            ),
-            ModerationQueueItem(
-                id = "mod_flag_102",
-                targetId = "comment_thread_44",
-                targetType = "Comment",
-                contentPreview = "\"Your 3D art project doesn't belong in the Teen Creator showcase.\"",
-                authorLabel = "@critic_account_8",
-                reason = "Bullying or Harassment",
-                reporterNotes = "Unconstructive hostility on a student's first 3D studio post.",
-                status = "PENDING"
-            ),
-            ModerationQueueItem(
-                id = "mod_flag_103",
-                targetId = "profile_check_19",
-                targetType = "Profile",
-                contentPreview = "Profile Bio: Sharing verified regional 211 Food Bank & VA Clinic hours.",
-                authorLabel = "Marcus Vance (Veteran Guide)",
-                reason = "Misinformation Check",
-                reporterNotes = "Community requested verification of listed clinic phone hours.",
-                status = "APPROVED",
-                moderatorResolution = "Verified official VA.gov & 211.org hours — Cleared by Moderation Queue."
-            )
-        )
-    }
+    val queueItems by ModerationReportQueueManager.queueItems.collectAsState()
 
     val pendingCount = queueItems.count { it.status == "PENDING" }
 
@@ -203,14 +282,14 @@ fun ContentModerationSystemCard(
                     }
                     Column {
                         Text(
-                            text = "CONTENT MODERATION & SAFETY QUEUE",
+                            text = "CONTENT MODERATION & ADMIN REVIEW QUEUE",
                             style = MaterialTheme.typography.labelSmall,
                             color = RosePulse,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = 0.7.sp
                         )
                         Text(
-                            text = "Flag Posts, Comments & Profiles • Review Queue",
+                            text = "Report Posts & Profiles • Harassment, Inappropriate Content, Spam",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             fontWeight = FontWeight.ExtraBold
@@ -256,7 +335,7 @@ fun ContentModerationSystemCard(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = statusBanner.orEmpty(),
+                                text = statusBanner,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
@@ -437,14 +516,8 @@ fun ContentModerationSystemCard(
                                         ) {
                                             Button(
                                                 onClick = {
-                                                    val idx = queueItems.indexOfFirst { it.id == item.id }
-                                                    if (idx >= 0) {
-                                                        queueItems[idx] = item.copy(
-                                                            status = "APPROVED",
-                                                            moderatorResolution = "Approved & Kept (Complies with Equality Guidelines)"
-                                                        )
-                                                        statusBanner = "✅ Approved ${item.targetType} (${item.targetId}) and cleared flag."
-                                                    }
+                                                    ModerationReportQueueManager.approveItem(item.id)
+                                                    localStatusBanner = "✅ Approved ${item.targetType} (${item.targetId}) and cleared flag."
                                                 },
                                                 shape = RoundedCornerShape(10.dp),
                                                 colors = ButtonDefaults.buttonColors(
@@ -472,14 +545,8 @@ fun ContentModerationSystemCard(
 
                                             Button(
                                                 onClick = {
-                                                    val idx = queueItems.indexOfFirst { it.id == item.id }
-                                                    if (idx >= 0) {
-                                                        queueItems[idx] = item.copy(
-                                                            status = "REMOVED",
-                                                            moderatorResolution = "Removed & Author Warned per Code of Conduct"
-                                                        )
-                                                        statusBanner = "🛡️ Removed flagged ${item.targetType} (${item.targetId}) from public feed."
-                                                    }
+                                                    ModerationReportQueueManager.removeItem(item.id)
+                                                    localStatusBanner = "🛡️ Removed flagged ${item.targetType} (${item.targetId}) from public feed."
                                                 },
                                                 shape = RoundedCornerShape(10.dp),
                                                 colors = ButtonDefaults.buttonColors(
@@ -570,7 +637,7 @@ fun ContentModerationSystemCard(
                         )
 
                         Text(
-                            text = "Select Violation Category:",
+                            text = "Select Reporting Reason (Flagged for Administrator Review):",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(0xFFCBD5E1)
                         )
@@ -580,16 +647,17 @@ fun ContentModerationSystemCard(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             listOf(
-                                "Spam or Scam Link",
-                                "Bullying or Harassment",
+                                "Harassment",
+                                "Inappropriate Content",
+                                "Spam",
                                 "Equality Charter Violation",
-                                "Inappropriate / 18+ Policy",
                                 "Misinformation"
                             ).forEach { reason ->
                                 FilterChip(
                                     selected = selectedFlagReason == reason,
                                     onClick = { selectedFlagReason = reason },
-                                    label = { Text(reason, style = MaterialTheme.typography.labelSmall) }
+                                    label = { Text(reason, style = MaterialTheme.typography.labelSmall) },
+                                    modifier = Modifier.testTag("flag_reason_chip_${reason.lowercase().replace(' ', '_')}")
                                 )
                             }
                         }
@@ -597,7 +665,7 @@ fun ContentModerationSystemCard(
                         OutlinedTextField(
                             value = flagDetailsInput,
                             onValueChange = { flagDetailsInput = it },
-                            label = { Text("Context / Notes for Moderators") },
+                            label = { Text("Context / Notes for Platform Administrators") },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -614,21 +682,18 @@ fun ContentModerationSystemCard(
                             onClick = {
                                 val cleanTarget = targetIdentifierInput.trim().ifBlank { "Flagged $selectedTargetType" }
                                 val cleanNotes = flagDetailsInput.trim().ifBlank { "Reported via Community Safety Hub" }
-                                val newItem = ModerationQueueItem(
-                                    id = "mod_flag_${System.currentTimeMillis()}",
+                                val newItem = ModerationReportQueueManager.submitReport(
                                     targetId = cleanTarget.lowercase().replace(' ', '_').take(24),
                                     targetType = selectedTargetType,
                                     contentPreview = "\"$cleanTarget\"",
                                     authorLabel = cleanTarget,
                                     reason = selectedFlagReason,
-                                    reporterNotes = cleanNotes,
-                                    status = "PENDING"
+                                    reporterNotes = cleanNotes
                                 )
-                                queueItems.add(0, newItem)
                                 onSubmitFlagToBackend(newItem.targetId, selectedTargetType.lowercase(), selectedFlagReason, cleanNotes)
                                 targetIdentifierInput = ""
                                 flagDetailsInput = ""
-                                statusBanner = "🚩 Flagged $selectedTargetType ('$cleanTarget') added to Review Queue & synced!"
+                                localStatusBanner = "🚩 Flagged $selectedTargetType ('$cleanTarget') for Administrator Review ($selectedFlagReason) & synced to Firestore!"
                                 activeTab = 0
                             },
                             shape = RoundedCornerShape(14.dp),
@@ -644,7 +709,7 @@ fun ContentModerationSystemCard(
                             Icon(imageVector = Icons.Default.Flag, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Submit $selectedTargetType Flag to Review Queue",
+                                text = "Submit $selectedTargetType Flag to Admin Review Queue",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.ExtraBold
                             )

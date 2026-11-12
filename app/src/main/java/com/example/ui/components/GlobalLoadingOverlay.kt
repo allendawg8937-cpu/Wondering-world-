@@ -72,13 +72,82 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
 import com.example.ui.NetworkOperationInfo
 import com.example.ui.theme.CyberEmerald
 import com.example.ui.theme.HoloCyan
 import com.example.ui.theme.NeonPink
 import com.example.ui.theme.SolarAmber
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import java.util.Locale
+
+/**
+ * Centralized global loading tracker that activates the [GlobalLoadingOverlay] spinner
+ * during any Firebase Firestore, Authentication, or Gemini AI / API data-fetching operation.
+ */
+object GlobalLoadingTracker {
+    private val _activeRequests = MutableStateFlow<List<NetworkOperationInfo>>(emptyList())
+    val activeRequests: StateFlow<List<NetworkOperationInfo>> = _activeRequests.asStateFlow()
+
+    fun beginRequest(
+        title: String,
+        subtitle: String,
+        category: String = "Firebase / API Fetch",
+        progress: Float? = null
+    ): String {
+        val id = "global_req_${System.currentTimeMillis()}_${(100..999).random()}"
+        val op = NetworkOperationInfo(
+            id = id,
+            title = title,
+            subtitle = subtitle,
+            category = category,
+            progress = progress
+        )
+        _activeRequests.update { current -> current + op }
+        return id
+    }
+
+    fun updateRequest(id: String, subtitle: String, progress: Float? = null) {
+        _activeRequests.update { current ->
+            current.map { op ->
+                if (op.id == id) op.copy(subtitle = subtitle, progress = progress) else op
+            }
+        }
+    }
+
+    fun endRequest(id: String) {
+        _activeRequests.update { current -> current.filterNot { it.id == id } }
+    }
+
+    fun clearAll() {
+        _activeRequests.value = emptyList()
+    }
+
+    suspend fun <T> withLoading(
+        title: String,
+        subtitle: String,
+        category: String = "Firebase / API Fetch",
+        minDisplayMillis: Long = 380L,
+        block: suspend (opId: String) -> T
+    ): T {
+        val startMs = System.currentTimeMillis()
+        val opId = beginRequest(title = title, subtitle = subtitle, category = category)
+        return try {
+            val result = block(opId)
+            val elapsed = System.currentTimeMillis() - startMs
+            if (elapsed < minDisplayMillis) {
+                delay(minDisplayMillis - elapsed)
+            }
+            result
+        } finally {
+            endRequest(opId)
+        }
+    }
+}
 
 /**
  * Global Loading Overlay component using a Material 3 [CircularProgressIndicator]
@@ -96,8 +165,12 @@ fun GlobalLoadingOverlay(
     onDismissAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isLoading = activeOperations.isNotEmpty()
-    val primaryOperation = activeOperations.firstOrNull()
+    val trackerOperations by GlobalLoadingTracker.activeRequests.collectAsState()
+    val mergedOperations = remember(activeOperations, trackerOperations) {
+        (activeOperations + trackerOperations).distinctBy { it.id }
+    }
+    val isLoading = mergedOperations.isNotEmpty()
+    val primaryOperation = mergedOperations.firstOrNull()
 
     // Live elapsed timer for the currently active network operation
     var elapsedMillis by remember(primaryOperation?.id) { mutableLongStateOf(0L) }
@@ -367,7 +440,7 @@ fun GlobalLoadingOverlay(
                     }
 
                     // Queue indicator when multiple background network tasks are active simultaneously
-                    if (activeOperations.size > 1) {
+                    if (mergedOperations.size > 1) {
                         Surface(
                             color = NeonPink.copy(alpha = 0.14f),
                             border = BorderStroke(1.dp, NeonPink.copy(alpha = 0.6f)),
@@ -379,7 +452,7 @@ fun GlobalLoadingOverlay(
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Text(
-                                    text = "Active Network Queue (${activeOperations.size} tasks):",
+                                    text = "Active Network Queue (${mergedOperations.size} tasks):",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = NeonPink,
                                     fontWeight = FontWeight.ExtraBold
@@ -388,7 +461,7 @@ fun GlobalLoadingOverlay(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    activeOperations.take(4).forEach { op ->
+                                    mergedOperations.take(4).forEach { op ->
                                         Text(
                                             text = "• ${op.title}",
                                             style = MaterialTheme.typography.labelSmall,
@@ -431,7 +504,10 @@ fun GlobalLoadingOverlay(
                         }
 
                         TextButton(
-                            onClick = onDismissAll,
+                            onClick = {
+                                GlobalLoadingTracker.clearAll()
+                                onDismissAll()
+                            },
                             modifier = Modifier.testTag("global_loading_dismiss_button")
                         ) {
                             Icon(
