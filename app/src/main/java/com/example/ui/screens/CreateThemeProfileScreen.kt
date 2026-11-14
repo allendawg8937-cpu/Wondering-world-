@@ -866,7 +866,13 @@ fun CreateThemeProfileScreen(
                     onSelectPersonaStage = { newStage ->
                         onRoleSelect(newStage)
                     },
-                    onEquipBadgeEmoji = onUpdateAvatarBadge
+                    onEquipBadgeEmoji = onUpdateAvatarBadge,
+                    currentVisualThemeId = formState.themeVisualStyle,
+                    onSelectVisualTheme = { themeId, primaryHex ->
+                        onThemeVisualStyleSelect(themeId)
+                        onThemeColorSelect(primaryHex)
+                    },
+                    onSaveAvatarToFirestore = onSaveProfile
                 )
 
                 // 2x2 Grid of AI-Generated 3D-Style Avatar Portraits

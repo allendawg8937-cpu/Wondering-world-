@@ -1,0 +1,67 @@
+{
+  "personaId": "teen",
+  "personaLabel": "Teen",
+  "headline": "Creative Identity, Digital Citizenship & Early Independence",
+  "summary": "Practical advice for managing school-life balance, creative portfolios, first earnings, and supportive peer spaces.",
+  "advice": [
+    {
+      "id": "teen-adv-1",
+      "title": "Automate First Paycheck Habits",
+      "guidance": "Whether from part-time work, tutoring, or gifts, setting aside 20% immediately makes larger tech or travel goals effortless.",
+      "actionStep": "Create one target fund for a skill-building tool or upcoming trip in Finance Goals.",
+      "category": "Finance"
+    },
+    {
+      "id": "teen-adv-2",
+      "title": "Protect Focus & Sleep Hygiene",
+      "guidance": "Batch social notifications and switch devices to Night Comfort 45 minutes before bed to boost energy and mood.",
+      "actionStep": "Set a consistent evening wind-down cue on school nights.",
+      "category": "Wellness"
+    },
+    {
+      "id": "teen-adv-3",
+      "title": "Build a Positive Creator Footprint",
+      "guidance": "Curate projects—code, art, music, or volunteering—that showcase your real voice for future mentors and colleges.",
+      "actionStep": "Save your latest creative milestone in your Wondering World profile.",
+      "category": "Community"
+    }
+  ],
+  "links": [
+    {
+      "id": "teen-lnk-1",
+      "title": "TeensHealth Mind & Wellness",
+      "description": "Trusted teen-focused health, stress management, and study balance articles.",
+      "url": "https://kidshealth.org/en/teens/",
+      "provider": "Nemours TeensHealth",
+      "category": "Wellness",
+      "isExternal": true
+    },
+    {
+      "id": "teen-lnk-2",
+      "title": "Code.org & Creative Computing",
+      "description": "Interactive computer science, web design, and game-building tutorials.",
+      "url": "https://code.org/",
+      "provider": "Code.org",
+      "category": "Education",
+      "isExternal": true
+    },
+    {
+      "id": "teen-lnk-3",
+      "title": "Youth Financial Literacy Hub",
+      "description": "Interactive saving, budgeting, and smart consumer skills for teens.",
+      "url": "https://www.fdic.gov/resources/consumers/money-smart/teach-money-smart/money-smart-for-young-people/index.html",
+      "provider": "FDIC Money Smart",
+      "category": "Finance",
+      "isExternal": true
+    },
+    {
+      "id": "teen-lnk-4",
+      "title": "Customize Profile & Safety Tools",
+      "description": "Personalize your profile bio and review community safety controls.",
+      "url": "/profile",
+      "provider": "Wondering World",
+      "category": "Community",
+      "isExternal": false
+    }
+  ]
+}

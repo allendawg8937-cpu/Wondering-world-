@@ -1,28 +1,47 @@
 // src/app/features/dashboard/dashboard-page.component.ts
 import { AsyncPipe, NgFor, NgIf } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { PersonaDefinition } from '../../data-access/models/persona.model';
 import { FinanceService } from '../../data-access/services/finance.service';
+import { PersonaService } from '../../data-access/services/persona.service';
 import { ProfileService } from '../../data-access/services/profile.service';
+import { CommunityResourcesComponent } from '../community/components/community-resources.component';
+import { PersonaSwitcherComponent } from './components/persona-switcher.component';
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [AsyncPipe, NgFor, NgIf],
+  imports: [
+    AsyncPipe,
+    NgFor,
+    NgIf,
+    PersonaSwitcherComponent,
+    CommunityResourcesComponent,
+  ],
   template: `
     <section class="dashboard">
       <header class="hero" *ngIf="profile$ | async as profile">
         <div>
-          <p class="eyebrow">Welcome back</p>
+          <p class="eyebrow">
+            Welcome back · {{ activePersona().label }} Mode ({{ activePersona().ageRange }})
+          </p>
           <h1>{{ profile.displayName }}</h1>
+          <p class="persona-subtitle">{{ activePersona().tagline }}</p>
         </div>
 
         <img [src]="profile.avatarUrl" alt="user avatar" />
       </header>
 
+      <app-persona-switcher (personaChanged)="onPersonaChanged($event)" />
+
+      <app-community-resources />
+
       <div class="grid">
         <article class="panel">
           <h3>Quick stats</h3>
           <ul>
+            <li>Active stage: {{ activePersona().label }}</li>
+            <li>Stage focus completed: {{ completionProgress() }}%</li>
             <li>Goals: 3</li>
             <li>Saved this month: $1,140</li>
             <li>Community streak: 14 days</li>
@@ -70,6 +89,12 @@ import { ProfileService } from '../../data-access/services/profile.service';
         font-size: clamp(1.8rem, 2vw, 2.5rem);
       }
 
+      .persona-subtitle {
+        margin: 8px 0 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+      }
+
       .hero img {
         width: 72px;
         height: 72px;
@@ -103,7 +128,15 @@ import { ProfileService } from '../../data-access/services/profile.service';
 export class DashboardPageComponent {
   private readonly profileService = inject(ProfileService);
   private readonly financeService = inject(FinanceService);
+  private readonly personaService = inject(PersonaService);
 
   readonly profile$ = this.profileService.getCurrentUser();
   readonly goals$ = this.financeService.getGoals();
+  readonly activePersona = this.personaService.activePersona;
+  readonly completionProgress = this.personaService.activeCompletionProgress;
+  lastSelectedPersona?: PersonaDefinition;
+
+  onPersonaChanged(persona: PersonaDefinition): void {
+    this.lastSelectedPersona = persona;
+  }
 }

@@ -27,11 +27,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -40,6 +44,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -62,16 +67,39 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import com.example.ui.components.DailyAffirmationCard
@@ -86,6 +114,7 @@ import com.example.ui.screens.FriendsAndDiscoveryScreen
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -102,6 +131,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -118,6 +148,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.data.model.BlockedUser
 import com.example.data.model.BudgetEntry
 import com.example.data.model.CareerMilestone
 import com.example.data.model.CommunityConnectionCard
@@ -137,32 +168,64 @@ import com.example.ui.SignUpFormState
 import com.example.ui.UiState
 import com.example.ui.UserIdeaProposal
 import androidx.compose.material.icons.filled.Newspaper
+import com.example.ui.components.AdaptiveUserLearningAiBotAndToolsCard
 import com.example.ui.components.AdultProfileDatingHubCard
+import com.example.ui.components.AiImageAndVoiceConversationStudioCard
+import com.example.ui.components.AppGalleryAndApiKeyQuotaCard
+import com.example.ui.components.AuthGuardedAppShellRouterCard
 import com.example.ui.components.BackgroundSongPreset
+import com.example.ui.components.CommunityLifeStageHubCard
 import com.example.ui.components.CommunityMarketplaceCard
+import com.example.ui.components.ContentModerationSystemCard
+import com.example.ui.components.AchievementGamificationLeaderboardCard
 import com.example.ui.components.CreativePhotoStudioCard
 import com.example.ui.components.CustomProfileThemeCreatorSection
+import com.example.ui.components.DailyHoroscopesCosmicCard
 import com.example.ui.components.DashboardTopWeatherSearchHeader
+import com.example.ui.components.DigitalAssetMarketSimulatorCard
 import com.example.ui.components.DigitalWalletCard
 import com.example.ui.components.EveryLoginSuggestionsCard
 import com.example.ui.components.FinancialLiteracyTrackerCard
-import com.example.ui.components.GoogleMapsSearchYouTubeCodingThemeWidget
-import com.example.ui.components.NewsAndSportsHubScreen
+import com.example.ui.components.FinancialTipOfTheDayCard
+import com.example.ui.components.Persona3DAvatarSelectionCard
+import com.example.ui.components.PersonaProfileSystemCard
+import com.example.ui.components.PersonaSelectionComponent
 import com.example.ui.components.PersonalGrowthRechartsDashboard
 import com.example.ui.components.PersonalizedInsightModuleCard
+import com.example.ui.components.PhotoStudioComponent
+import com.example.ui.components.PlatformReleaseAndDownloadHubCard
+import com.example.data.model.Profile3DConfig
+import com.example.ui.components.Profile3DCustomizerComponent
 import com.example.ui.components.ProfileAdaptiveLearningCard
 import com.example.ui.components.ProfileBackgroundMusicJukeboxCard
 import com.example.ui.components.ProfileSportsSelectorCard
 import com.example.ui.components.ProfileYouTubeReelsAndGamesHubCard
-import com.example.ui.components.SixDimensionalHdBadge
+import com.example.data.export.UserDataExportPayload
+import com.example.data.model.PersonaStageData
+import com.example.data.model.buildDefaultPersonaStageData
+import com.example.data.model.normalizePersonaStageId
+import com.example.ui.components.PersonaDashboardComponent
+import com.example.ui.components.ProfileDownloadDataCard
+import com.example.ui.components.PublishedVideoReelsStore
+import com.example.ui.components.ResourceHubCard
+import com.example.ui.components.SettingsBlockUsersCard
+import com.example.ui.components.SettingsCodeOfConductCard
+import com.example.ui.components.SettingsDeleteAccountCard
+import com.example.ui.components.SettingsPhoneWalletSetupCard
+import com.example.ui.components.SettingsPlatformSwitcherCard
 import com.example.ui.components.StudentSchoolAndCareersPortalCard
+import com.example.ui.components.SystemWideDarkModeControlCard
 import com.example.ui.components.THREE_D_AVATAR_PRESETS
 import com.example.ui.components.THREE_D_THEME_VISUAL_STYLES
+import com.example.ui.components.TextToVideoGeneratorStudioCard
+import com.example.ui.components.ThreeDAvatarCustomizerCard
 import com.example.ui.components.ThreeDAvatarPreset
-import com.example.ui.components.ThreeDThemeStyleSelectorMenuCard
 import com.example.ui.components.ThreeDimensionalBackground
+import com.example.ui.components.ThreeJsStudio3DSceneCard
+import com.example.ui.components.VideoReelsComponent
+import com.example.ui.components.VirtualCurrencySystemCard
 import com.example.ui.components.WereAllEquals3DHeroShowcaseBanner
-import com.example.ui.components.launchPhoneSystemSetting
+import com.example.ui.components.WereEqualDonationAndCreatorSupportCard
 import com.example.ui.components.sixDimensionalCardEffect
 import com.example.ui.theme.CURATED_3D_COLOR_PALETTES
 import com.example.ui.theme.CyberEmerald
@@ -174,7 +237,6 @@ import com.example.ui.theme.SolarAmber
 import com.example.ui.theme.findSecondaryAccentForHex
 import com.example.ui.theme.parseThemeHex
 import com.example.ui.components.EmbeddedSearchWebView
-import com.example.ui.components.ReportContentDialog
 import androidx.compose.material3.rememberModalBottomSheetState
 
 private data class FacebookStoryItem(
@@ -306,15 +368,63 @@ fun MainDashboardScreen(
     onClaimBadgeQuest: (com.example.ui.components.CurrencyEarnBadgeQuest) -> Unit = {},
     onPurchaseOrApplyShopItem: (com.example.ui.components.CurrencySpendItem) -> Unit = {},
     onTipCommunityUser: (String, Long, String) -> Unit = { _, _, _ -> },
+    profile3DConfigs: List<Profile3DConfig> = emptyList(),
+    isProfile3DSaving: Boolean = false,
+    profile3DStatusBanner: String? = null,
+    isAuthenticatedForCloud: Boolean = false,
+    onSaveProfile3DConfig: (Profile3DConfig, String) -> Unit = { _, _ -> },
+    onDeleteProfile3DConfig: (String) -> Unit = {},
+    personaStageDataMap: Map<String, PersonaStageData> = emptyMap(),
+    isPersonaStageSaving: Boolean = false,
+    personaStageStatusBanner: String? = null,
+    onSavePersonaStageData: (PersonaStageData) -> Unit = {},
+    preferredSearchEngine: String = "Google",
+    onSelectSearchEngine: (String) -> Unit = {},
+    platformLayoutMode: String = "Balanced",
+    onSelectPlatformLayoutMode: (String) -> Unit = {},
+    platformNotificationsEnabled: Boolean = true,
+    onTogglePlatformNotifications: (Boolean) -> Unit = {},
+    showMatureLoungeEnabled: Boolean = true,
+    onToggleMatureLounge: (Boolean) -> Unit = {},
+    selectedWalletTier: String = "Personal Digital Wallet",
+    onSelectWalletTier: (String) -> Unit = {},
+    blockedUsers: List<BlockedUser> = emptyList(),
+    onBlockUser: (targetUserId: String, targetDisplayName: String, reason: String) -> Unit = { _, _, _ -> },
+    onUnblockUser: (String) -> Unit = {},
+    settingsStatusBanner: String? = null,
+    onClearSettingsStatusBanner: () -> Unit = {},
+    isDeletingAccount: Boolean = false,
+    onDeleteAccountPermanently: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var universalSearchQuery by remember { mutableStateOf("") }
-    var selectedSearchEngine by remember { mutableStateOf("Google") }
+    var showAllPagesSheet by rememberSaveable { mutableStateOf(false) }
+    var showInstallPublishSheet by rememberSaveable { mutableStateOf(false) }
+
+    val blockedIdsSet = remember(blockedUsers) {
+        blockedUsers.map { it.blockedUserId.lowercase() }.toSet()
+    }
+    val blockedNamesSet = remember(blockedUsers) {
+        blockedUsers.map { it.blockedDisplayName.trim().lowercase() }.toSet()
+    }
+    val visibleDiscoveredUsers = remember(discoveredUsers, blockedIdsSet, blockedNamesSet) {
+        discoveredUsers.filterNot { user ->
+            user.userId.lowercase() in blockedIdsSet ||
+                user.displayName.trim().lowercase() in blockedNamesSet
+        }
+    }
+    val visibleCommunityConnections = remember(communityConnections, blockedIdsSet, blockedNamesSet) {
+        communityConnections.filterNot { conn ->
+            conn.id.lowercase() in blockedIdsSet ||
+                conn.name.trim().lowercase() in blockedNamesSet
+        }
+    }
 
     // In-App Search WebView State
     var searchUrlToOpen by remember { mutableStateOf<String?>(null) }
     val searchSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val utilitySheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Music connection state
     var musicServiceToConnect by remember { mutableStateOf<String?>(null) }
@@ -330,6 +440,58 @@ fun MainDashboardScreen(
         musicPlatform = signUpForm.musicPlatform
     )
 
+    val currentBudgetEntries = (budgetState as? UiState.Success)?.data ?: emptyList()
+    val currentCareerMilestones = (careerMilestonesState as? UiState.Success)?.data ?: emptyList()
+    val exportPayload = remember(
+        profile,
+        signUpForm,
+        userAccountEmail,
+        userAccountPhone,
+        avatarEmojiBadge,
+        isDarkMode,
+        backgroundTransparency,
+        currentVisualStyleId,
+        selectedSportsIds,
+        learnedInterests,
+        learnedLifestyle,
+        learnedSchedule,
+        learnedResearch,
+        learnedSignals,
+        currentBudgetEntries,
+        currentCareerMilestones,
+        virtualCurrencyBalance,
+        dailyBonusClaimed,
+        loginStreakDays,
+        currencyTransactions,
+        personaStageDataMap,
+        profile3DConfigs
+    ) {
+        UserDataExportPayload(
+            profile = profile,
+            signUpForm = signUpForm,
+            userEmail = userAccountEmail,
+            userPhone = userAccountPhone,
+            avatarEmojiBadge = avatarEmojiBadge,
+            isDarkMode = isDarkMode,
+            backgroundTransparency = backgroundTransparency,
+            currentVisualStyleId = currentVisualStyleId,
+            selectedSportsIds = selectedSportsIds,
+            learnedInterests = learnedInterests,
+            learnedLifestyle = learnedLifestyle,
+            learnedSchedule = learnedSchedule,
+            learnedResearch = learnedResearch,
+            learnedSignals = learnedSignals,
+            budgetEntries = currentBudgetEntries,
+            careerMilestones = currentCareerMilestones,
+            virtualCurrencyBalance = virtualCurrencyBalance,
+            dailyBonusClaimed = dailyBonusClaimed,
+            loginStreakDays = loginStreakDays,
+            currencyTransactions = currencyTransactions,
+            personaStageDataMap = personaStageDataMap,
+            profile3DConfigs = profile3DConfigs
+        )
+    }
+
     fun launchWebUrl(url: String) {
         searchUrlToOpen = url
     }
@@ -337,9 +499,9 @@ fun MainDashboardScreen(
     fun executeUniversalSearch(overrideQuery: String? = null) {
         val q = (overrideQuery ?: universalSearchQuery).trim()
         if (q.isEmpty()) return
-        onRecordLearnedSignal("Searched $selectedSearchEngine: ${q.take(24)}")
+        onRecordLearnedSignal("Searched $preferredSearchEngine: ${q.take(24)}")
         val encoded = Uri.encode(q)
-        val url = when (selectedSearchEngine) {
+        val url = when (preferredSearchEngine) {
             "DuckDuckGo" -> "https://duckduckgo.com/?q=$encoded"
             "Bing" -> "https://www.bing.com/search?q=$encoded"
             else -> "https://www.google.com/search?q=$encoded"
@@ -347,17 +509,26 @@ fun MainDashboardScreen(
         launchWebUrl(url)
     }
 
-    // Consolidated 6-Tab Navigation (Matching Bottom Nav Items)
-    val pagerTabs = remember {
-        listOf(
-            DashboardTab.HUB_3D,           // 1. Dashboard
-            DashboardTab.THEME_PROFILE,     // 2. Profile
-            DashboardTab.FRIENDS,           // 3. Friends (New)
-            DashboardTab.MESSAGING,         // 4. Messages (+ Studio/Arcade)
-            DashboardTab.VIDEO_CHAT,        // 5. Video
-            DashboardTab.FINANCE_GOALS,     // 6. Wallet (+ Stability/Delivery)
-            DashboardTab.MAINTENANCE_SETTINGS // 7. Settings (+ Resources/Explore)
-        )
+    // DashboardTab destinations (respecting 18+ lounge visibility preference)
+    val pagerTabs = remember(showMatureLoungeEnabled) {
+        buildList {
+            add(DashboardTab.HUB_3D)               // 1. Home
+            add(DashboardTab.STUDIO_ARCADE)        // 2. Reels, Photo & Studio
+            add(DashboardTab.THEME_PROFILE)        // 3. Profile & 3D
+            add(DashboardTab.FRIENDS)              // 4. Friends
+            add(DashboardTab.MESSAGING)            // 5. Messages
+            add(DashboardTab.VIDEO_CHAT)           // 6. Video Calls
+            add(DashboardTab.FINANCE_GOALS)        // 7. Wallet & Finance
+            add(DashboardTab.RESOURCES)            // 8. School, Jobs & Aid
+            add(DashboardTab.AI_TOOLS)             // 9. AI Tools & Tutor
+            add(DashboardTab.NEWS_SPORTS)          // 10. News & Sports
+            add(DashboardTab.DELIVERY_DRIVING)     // 11. Rideshare & Delivery
+            if (showMatureLoungeEnabled) {
+                add(DashboardTab.STABILITY_LOUNGE) // 12. Market, Growth & 18+
+            }
+            add(DashboardTab.CODE_OF_CONDUCT)      // 13. Safety & Community
+            add(DashboardTab.MAINTENANCE_SETTINGS) // 14. Settings & Platform Hub
+        }
     }
 
     val pagerState = rememberPagerState(
@@ -365,25 +536,27 @@ fun MainDashboardScreen(
         pageCount = { pagerTabs.size }
     )
 
-    // Sync activeTab -> pager with smooth cubic-bezier horizontal slide animation
-    LaunchedEffect(activeTab) {
+    val currentActiveTab by rememberUpdatedState(activeTab)
+
+    // Sync activeTab -> pager with smooth horizontal slide animation
+    LaunchedEffect(activeTab, pagerTabs) {
         val targetPage = pagerTabs.indexOf(activeTab)
         if (targetPage >= 0 && targetPage != pagerState.currentPage) {
             pagerState.animateScrollToPage(
                 page = targetPage,
                 animationSpec = tween(
-                    durationMillis = 360,
+                    durationMillis = 320,
                     easing = FastOutSlowInEasing
                 )
             )
         }
     }
 
-    // Sync pager -> activeTab
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { page ->
-            val tab = pagerTabs[page]
-            if (tab != activeTab) {
+    // Sync settled pager swipe -> activeTab (ignores intermediate animated pages)
+    LaunchedEffect(pagerState, pagerTabs) {
+        snapshotFlow { pagerState.settledPage }.collect { page ->
+            val tab = pagerTabs.getOrNull(page) ?: return@collect
+            if (tab != currentActiveTab && !pagerState.isScrollInProgress) {
                 onSelectTab(tab)
             }
         }
@@ -394,56 +567,51 @@ fun MainDashboardScreen(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
+            // Clean 5-Tab Material 3 Bottom Bar with dedicated 1-tap Settings tab
             NavigationBar(
                 modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 NavigationBarItem(
-                    selected = activeTab == DashboardTab.HUB_3D,
+                    selected = activeTab == DashboardTab.HUB_3D ||
+                        activeTab == DashboardTab.THEME_PROFILE ||
+                        activeTab == DashboardTab.NEWS_SPORTS ||
+                        activeTab == DashboardTab.RESOURCES ||
+                        activeTab == DashboardTab.CODE_OF_CONDUCT,
                     onClick = { onSelectTab(DashboardTab.HUB_3D) },
-                    icon = { Icon(Icons.Default.Public, contentDescription = "Dashboard") },
-                    label = { Text("Dashboard", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    icon = { Icon(Icons.Default.Public, contentDescription = "Home") },
+                    label = { Text("Home", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
                     modifier = Modifier.testTag("tab_hub_3d")
                 )
                 NavigationBarItem(
-                    selected = activeTab == DashboardTab.THEME_PROFILE,
-                    onClick = { onSelectTab(DashboardTab.THEME_PROFILE) },
-                    icon = { Icon(Icons.Default.Person, contentDescription = "My Profile") },
-                    label = { Text("Profile", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
-                    modifier = Modifier.testTag("tab_theme_profile")
+                    selected = activeTab == DashboardTab.STUDIO_ARCADE || activeTab == DashboardTab.AI_TOOLS,
+                    onClick = { onSelectTab(DashboardTab.STUDIO_ARCADE) },
+                    icon = { Icon(Icons.Default.Brush, contentDescription = "Reels & Studio") },
+                    label = { Text("Studio", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    modifier = Modifier.testTag("tab_studio_arcade")
                 )
                 NavigationBarItem(
-                    selected = activeTab == DashboardTab.FRIENDS,
+                    selected = activeTab == DashboardTab.FRIENDS ||
+                        activeTab == DashboardTab.MESSAGING ||
+                        activeTab == DashboardTab.VIDEO_CHAT,
                     onClick = { onSelectTab(DashboardTab.FRIENDS) },
-                    icon = { Icon(Icons.Default.Group, contentDescription = "Friends") },
-                    label = { Text("Friends", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    icon = { Icon(Icons.Default.Group, contentDescription = "Friends & Chat") },
+                    label = { Text("Social", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
                     modifier = Modifier.testTag("tab_friends")
                 )
                 NavigationBarItem(
-                    selected = activeTab == DashboardTab.MESSAGING || activeTab == DashboardTab.STUDIO_ARCADE,
-                    onClick = { onSelectTab(DashboardTab.MESSAGING) },
-                    icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Messages") },
-                    label = { Text("Messages", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
-                    modifier = Modifier.testTag("tab_messaging")
-                )
-                NavigationBarItem(
-                    selected = activeTab == DashboardTab.VIDEO_CHAT,
-                    onClick = { onSelectTab(DashboardTab.VIDEO_CHAT) },
-                    icon = { Icon(Icons.Default.Videocam, contentDescription = "Video Chat") },
-                    label = { Text("Video", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
-                    modifier = Modifier.testTag("tab_video_chat")
-                )
-                NavigationBarItem(
-                    selected = activeTab == DashboardTab.FINANCE_GOALS || activeTab == DashboardTab.STABILITY_LOUNGE || activeTab == DashboardTab.DELIVERY_DRIVING,
+                    selected = activeTab == DashboardTab.FINANCE_GOALS ||
+                        activeTab == DashboardTab.DELIVERY_DRIVING ||
+                        activeTab == DashboardTab.STABILITY_LOUNGE,
                     onClick = { onSelectTab(DashboardTab.FINANCE_GOALS) },
                     icon = { Icon(Icons.Default.Savings, contentDescription = "Wallet & Goals") },
                     label = { Text("Wallet", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
                     modifier = Modifier.testTag("tab_finance_goals")
                 )
                 NavigationBarItem(
-                    selected = activeTab == DashboardTab.MAINTENANCE_SETTINGS || activeTab == DashboardTab.RESOURCES || activeTab == DashboardTab.AI_TOOLS || activeTab == DashboardTab.CODE_OF_CONDUCT,
+                    selected = activeTab == DashboardTab.MAINTENANCE_SETTINGS,
                     onClick = { onSelectTab(DashboardTab.MAINTENANCE_SETTINGS) },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Maintenance & Settings") },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                     label = { Text("Settings", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
                     modifier = Modifier.testTag("tab_maintenance_settings")
                 )
@@ -456,39 +624,48 @@ fun MainDashboardScreen(
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Top Dashboard Bar (Fixed at top — includes Firestore-Indexed Community Member Lookup)
+            // 1. Compact Top Dashboard Bar (Search toggle, Install/Publish, Live Time/Weather, Settings, Profile, Sign Out)
             DashboardTopWeatherSearchHeader(
                 locationName = profile.location,
                 onLocationUpdated = onLocationChange,
                 universalSearchQuery = universalSearchQuery,
                 onSearchQueryChange = { universalSearchQuery = it },
-                selectedSearchEngine = selectedSearchEngine,
-                onSelectSearchEngine = { selectedSearchEngine = it },
+                selectedSearchEngine = preferredSearchEngine,
+                onSelectSearchEngine = onSelectSearchEngine,
                 onExecuteSearch = { executeUniversalSearch(it) },
                 onNavigateToEditProfile = onNavigateToEditProfile,
                 onOpenPhoneSystemSettings = {
                     onSelectTab(DashboardTab.MAINTENANCE_SETTINGS)
                 },
                 onSignOut = onSignOut,
-                onNavigateToFriendsDiscovery = onNavigateToFriendsDiscovery,
-                discoveredUsers = discoveredUsers,
-                communityConnections = communityConnections,
+                onNavigateToFriendsDiscovery = {
+                    onSelectTab(DashboardTab.FRIENDS)
+                },
+                onOpenInstallPublishHub = {
+                    showInstallPublishSheet = true
+                },
+                discoveredUsers = visibleDiscoveredUsers,
+                communityConnections = visibleCommunityConnections,
                 onSearchCommunityMembers = onSearchUsers,
                 onSendFriendRequest = onSendFriendRequest,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
             )
 
-            // 1A. Quick-Swipe Horizontal Tab Strip with Animated Slide Indicator (Dashboard, Profile, Community & More)
+            // 1A. Clean Page Navigator Strip + 1-Tap "All Pages" Grid Drawer
             DashboardQuickSwipeTabStrip(
                 pagerTabs = pagerTabs,
                 currentPage = pagerState.currentPage,
                 currentPageOffsetFraction = pagerState.currentPageOffsetFraction,
                 activeAccentHex = signUpForm.themeColorHex,
                 onSelectTab = onSelectTab,
+                onOpenAllPagesMenu = { showAllPagesSheet = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 2.dp)
             )
+
+            val coroutineScope = rememberCoroutineScope()
+            val accentColor = parseThemeHex(signUpForm.themeColorHex)
 
             HorizontalPager(
                 state = pagerState,
@@ -499,6 +676,7 @@ fun MainDashboardScreen(
                 beyondViewportPageCount = 1
             ) { pageIndex ->
                 val tab = pagerTabs[pageIndex]
+                val pageScrollState = rememberScrollState()
                 val rawPageOffset = (
                     (pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction
                 ).coerceIn(-1f, 1f)
@@ -506,11 +684,10 @@ fun MainDashboardScreen(
                 val slideScale = 0.94f + (1f - absOffset) * 0.06f
                 val slideAlpha = 0.58f + (1f - absOffset) * 0.42f
 
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            // Subtle horizontal slide parallax, scale depth, alpha fade, and 3D Y-axis tilt
                             translationX = -rawPageOffset * size.width * 0.12f
                             scaleX = slideScale
                             scaleY = slideScale
@@ -518,490 +695,680 @@ fun MainDashboardScreen(
                             rotationY = -rawPageOffset * 4.5f
                             cameraDistance = 14f * density
                         }
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .widthIn(max = 600.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .fillMaxSize()
+                            .verticalScroll(pageScrollState)
+                            .padding(start = 16.dp, end = 24.dp, top = 4.dp, bottom = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // 1B. Show 3D Emblem Showcase & Platform https:\\ / https:// URL Builder on Home Hub
-                        if (tab == DashboardTab.HUB_3D) {
-                            WereAllEquals3DHeroShowcaseBanner()
-
-                            // Persona-Based Profile System (Veteran, Business, Kid, Teen, Adult, Student)
-                            com.example.ui.components.PersonaProfileSystemCard(
-                                currentRole = signUpForm.role,
-                                currentAgeText = signUpForm.ageText,
-                                currentVisualStyleId = currentVisualStyleId,
-                                currentThemeHex = signUpForm.themeColorHex,
-                                selectedInterests = signUpForm.selectedInterests + learnedInterests,
-                                onSelectPersona = { roleKey, defaultAge, defaultHex, defaultStyleId ->
-                                    onRoleSelect(roleKey)
-                                    onAgeChange(defaultAge)
-                                    onThemeColorSelect(defaultHex)
-                                    onThemeVisualStyleSelect(defaultStyleId)
-                                },
-                                onApplyPersonaTheme = { visualStyleId, colorHex, badgeEmoji ->
-                                    onThemeVisualStyleSelect(visualStyleId)
-                                    onThemeColorSelect(colorHex)
-                                    onUpdateAvatarBadge(badgeEmoji)
-                                },
-                                onPinPersonaInterest = { interest ->
-                                    onToggleLearnedInterest(interest)
-                                },
-                                onSharePersonaActionToWall = { title, content ->
-                                    onCreatePost("Update", title, content)
-                                }
-                            )
-
-                            // Compose 3D Avatar Identity Customizer (Accessories, Perspective Orbit & Multi-Zone Colors)
-                            com.example.ui.components.ThreeDAvatarCustomizerCard(
-                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                currentThemeHex = signUpForm.themeColorHex,
-                                currentAvatarEmoji = avatarEmojiBadge,
-                                onApplyPrimaryThemeHex = onThemeColorSelect,
-                                onApplyAvatarBadgeEmoji = onUpdateAvatarBadge,
-                                onApplyCustomizedAvatarBitmap = onUpdateProfileBitmap,
-                                onToggleAvatarAccessoryTag = onToggleAvatarTag,
-                                onShareAvatarToWall = { headline, body ->
-                                    onCreatePost("Studio Art", headline, body)
-                                }
-                            )
-
-                            // Virtual Currency System (EqualCoins / EQC - Earn, Spend & Tip Users)
-                            com.example.ui.components.VirtualCurrencySystemCard(
-                                balance = virtualCurrencyBalance,
-                                dailyBonusClaimed = dailyBonusClaimed,
-                                streakDays = loginStreakDays,
-                                claimedBadgeIds = claimedBadgeIds,
-                                unlockedItemIds = unlockedShopItemIds,
-                                transactions = currencyTransactions,
-                                statusBanner = currencyStatusBanner,
-                                accentColor = parseThemeHex(signUpForm.themeColorHex),
-                                onClaimDailyLoginBonus = onClaimDailyLoginBonus,
-                                onRewardHelpfulPostBonus = onRewardHelpfulPostBonus,
-                                onClaimBadgeQuest = onClaimBadgeQuest,
-                                onPurchaseOrApplyShopItem = onPurchaseOrApplyShopItem,
-                                onTipCommunityUser = onTipCommunityUser
-                            )
-
-                            // Achievement & Gamification System + Community Leaderboards
-                            com.example.ui.components.AchievementGamificationLeaderboardCard(
-                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                userRole = signUpForm.role,
-                                userAvatarEmoji = avatarEmojiBadge,
-                                accentColor = parseThemeHex(signUpForm.themeColorHex),
-                                onEquipBadgeToProfile = onUpdateAvatarBadge,
-                                onAwardEqualCoinsBonus = { onRewardHelpfulPostBonus() },
-                                onShareAchievementToWall = { title, body ->
-                                    onCreatePost("Milestone", title, body)
-                                }
-                            )
-
-                            // Fast AI Image Creation & Editing (Nano Banana 2.1) + Live Voice Conversations
-                            com.example.ui.components.AiImageAndVoiceConversationStudioCard(
-                                currentProfileBitmap = customProfileBitmap,
-                                aiProfileImageState = aiProfileImageState,
-                                onGenerateNewImageFromPrompt = onGenerateAiProfilePhoto,
-                                onApplyGeneratedBitmapToProfile = onUpdateProfileBitmap,
-                                onShareCreationToWall = { title, body ->
-                                    onCreatePost("Studio Art", title, body)
-                                }
-                            )
-
-                            // Content Moderation System (Flag Posts, Comments & Profiles + Review Queue)
-                            com.example.ui.components.ContentModerationSystemCard(
-                                onSubmitFlagToBackend = onReportContent
-                            )
-
-                            // Mainstay Release, Download (APK/AAB/ZIP) & Publish Readiness Hub (v3.0)
-                            com.example.ui.components.PlatformReleaseAndDownloadHubCard(
-                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                onTriggerFullCloudSync = onRefreshLoginSuggestions
-                            )
-
-                            // AppShell Route Table & AuthGuard Outlet Switcher (login, dashboard, profile, finance/goals, '' -> dashboard, '**' -> dashboard)
-                            com.example.ui.components.AuthGuardedAppShellRouterCard(
-                                effectiveScreen = com.example.ui.AppNavScreen.MAIN_DASHBOARD,
-                                activeTab = activeTab,
-                                isAuthenticated = true,
-                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                onNavigateToLogin = onNavigateToEditProfile,
-                                onNavigateToTab = onSelectTab,
-                                onLogout = onSignOut
-                            )
-
-                            // Centralized Dynamic Persona Dashboard (Kid, Teen, Student, Adult, Business, Veteran)
-                            com.example.ui.components.CentralizedPersonaDynamicDashboardCard(
-                                currentPersonaRole = signUpForm.role.ifBlank { profile.role },
-                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                onSwitchPersona = { newRole ->
-                                    onSwitchPersonaQuick(newRole, if (newRole.contains("kid", true)) 10L else if (newRole.contains("teen", true)) 15L else if (newRole.contains("student", true)) 20L else 28L)
-                                },
-                                onNavigateToTab = onSelectTab,
-                                onShareMilestoneToWall = { title, body ->
-                                    onCreatePost("Milestone", title, body)
-                                }
-                            )
-
-                            // Adaptive User-Learning Engine + Gemini AI Research Bot & 6 AI Power Tools
-                            com.example.ui.components.AdaptiveUserLearningAiBotAndToolsCard(
-                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                userRole = signUpForm.role.ifBlank { profile.role },
-                                userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
-                                userLocation = profile.location.ifBlank { signUpForm.location },
-                                learnedSignals = learnedSignals,
-                                learnedInterests = learnedInterests,
-                                learnedLifestyle = learnedLifestyle,
-                                learnedSchedule = learnedSchedule,
-                                learnedResearch = learnedResearch,
-                                aiStudyState = aiStudyState,
-                                aiFlashcardsState = aiFlashcardsState,
-                                aiAdaptivePlanState = aiAdaptivePlanState,
-                                onRecordLearnedSignal = onRecordLearnedSignal,
-                                onAddCustomLearningSignal = onAddCustomLearningSignal,
-                                onToggleLearnedInterest = onToggleLearnedInterest,
-                                onToggleLearnedResearch = onToggleLearnedResearch,
-                                onAskAiStudyTutor = onAskAiStudyTutor,
-                                onGenerateStudyFlashcards = onGenerateStudyFlashcards,
-                                onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
-                                onShareAiResearchToWall = { headline, body ->
-                                    onCreatePost("Resource Guide", headline, body)
-                                }
-                            )
-
-                            com.example.ui.components.PlatformUrlGeneratorCard(
-                                userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                currentVisualStyleId = currentVisualStyleId,
-                                currentThemeHex = signUpForm.themeColorHex,
-                                onPublishUrlToCommunityWall = { title, body ->
-                                    onCreatePost("Platform Link", title, body)
-                                }
-                            )
-
-                            // Financial Tip of the Day (Persona-Based Daily Literacy Snippet)
-                            com.example.ui.components.FinancialTipOfTheDayCard(
-                                userRole = signUpForm.role,
-                                userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
-                                onApplyTipSavingsAction = { title, amountDollars ->
-                                    onAddBudgetItem(title, "Save", amountDollars)
-                                },
-                                onShareTipToWall = { headline, body ->
-                                    onCreatePost("Milestone", headline, body)
-                                }
-                            )
-
-                            // Daily Horoscopes & 6D Cosmic Zodiac Hub
-                            com.example.ui.components.DailyHoroscopesCosmicCard(
-                                onApplyCosmicTheme = { visualStyleId, colorHex, zodiacEmoji ->
-                                    onThemeVisualStyleSelect(visualStyleId)
-                                    onThemeColorSelect(colorHex)
-                                    onUpdateAvatarBadge(zodiacEmoji)
-                                },
-                                onShareHoroscopeToWall = { headline, body ->
-                                    onCreatePost("Update", headline, body)
-                                }
-                            )
-
-                            // WereEqual Donation & Creator Support Page (Charity of Choice or Support Platform Creator)
-                            com.example.ui.components.WereEqualDonationAndCreatorSupportCard(
-                                donorDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                onRecordGivingInBudget = { title, amountDollars ->
-                                    onAddBudgetItem(title, "Give", amountDollars)
-                                },
-                                onTipEqualCoinsToCreatorOrCharity = { recipientName, eqcAmount, note ->
-                                    onTipCommunityUser(recipientName, eqcAmount, note)
-                                },
-                                onEquipSupporterBadge = onUpdateAvatarBadge,
-                                onShareDonationToWall = { headline, body ->
-                                    onCreatePost("Milestone", headline, body)
-                                }
-                            )
-
-                            // Three.js 3D Studio PBR & Procedural Zero-Occlusion Scene Renderer
-                            com.example.ui.components.ThreeJsStudio3DSceneCard(
-                                onShareSceneToWall = { headline, body ->
-                                    onCreatePost("3D Studio", headline, body)
-                                }
-                            )
-
-                            // Stages Of Life Persona Selection & Age-Verified Profile Customizer
-                            com.example.ui.components.PersonaSelectionSystemCard(
-                                currentRole = signUpForm.role,
-                                currentAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
-                                onApplyPersona = { role, age, defaultColorHex, styleId ->
-                                    onSwitchPersonaQuick(role, age)
-                                    onThemeColorSelect(defaultColorHex)
-                                    onThemeVisualStyleSelect(styleId)
-                                },
-                                onNavigateToSection = { targetTab ->
-                                    onSelectTab(targetTab)
-                                },
-                                onPublishPersonaPost = { headline, body ->
-                                    onCreatePost("Persona", headline, body)
-                                }
-                            )
-
-                            // 3D Avatar Base Character Selection Studio for Stages Of Life Personas (Local State Persisted)
-                            com.example.ui.components.Persona3DAvatarSelectionCard(
-                                currentPersonaRole = signUpForm.role.ifBlank { profile.role },
-                                selected3DAvatarResId = selected3DAvatarResId,
-                                onSelect3DAvatarPreset = onSelect3DAvatarPreset,
-                                onSelectPersonaStage = { newStage ->
-                                    val defaultAge = when (newStage.lowercase()) {
-                                        "kid" -> 10L
-                                        "teen" -> 15L
-                                        "student" -> 20L
-                                        "business" -> 32L
-                                        "veteran" -> 38L
-                                        else -> 28L
+                        val sectionSpacing = when (platformLayoutMode) {
+                            "Compact" -> 8.dp
+                            "Expanded" -> 18.dp
+                            else -> 12.dp
+                        }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 600.dp),
+                            verticalArrangement = Arrangement.spacedBy(sectionSpacing)
+                        ) {
+                        // Clean Page Header Bar on Secondary Pages for Instant Orientation & 1-Tap Return Home
+                        if (tab != DashboardTab.HUB_3D) {
+                            val pageMeta = when (tab) {
+                                DashboardTab.STUDIO_ARCADE -> "🎬 Reels, Photo Studio & Arcade" to "Watch & make video reels, AI photo filters & games"
+                                DashboardTab.THEME_PROFILE -> "🎨 Profile & 3D Themes" to "3D avatars, custom themes & profile customization"
+                                DashboardTab.FRIENDS -> "👥 Friends & Discovery" to "Find members, manage requests & sync contacts"
+                                DashboardTab.MESSAGING -> "💬 Messages & Chat" to "Direct conversations & icebreakers"
+                                DashboardTab.VIDEO_CHAT -> "📹 Video Chat & Calls" to "Live video rooms & face-to-face calls"
+                                DashboardTab.FINANCE_GOALS -> "💰 Wallet & Finance" to "Digital wallet, EqualCoins & savings goals"
+                                DashboardTab.RESOURCES -> "🎓 School, Jobs & Aid" to "Education portals, career tracks, 211 & VA aid"
+                                DashboardTab.AI_TOOLS -> "🤖 AI Tools & Tutor" to "Study coach, flashcards, voice & AI studio"
+                                DashboardTab.NEWS_SPORTS -> "📰 News, Sports & Horoscopes" to "Daily headlines, live scores & zodiac insights"
+                                DashboardTab.DELIVERY_DRIVING -> "🚗 Rideshare & Delivery" to "Uber, Lyft, DoorDash & food ordering portals"
+                                DashboardTab.STABILITY_LOUNGE -> "🛍️ Market, Growth & 18+" to "Marketplace, growth charts, donations & 18+ lounge"
+                                DashboardTab.CODE_OF_CONDUCT -> "🛡️ Safety & Community" to "Code of conduct, moderation & community ideas"
+                                DashboardTab.MAINTENANCE_SETTINGS -> "⚙️ Settings & Downloads" to "App colors, dark mode, account & APK export"
+                                DashboardTab.HUB_3D -> "🏠 Home" to ""
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f),
+                                border = BorderStroke(1.dp, parseThemeHex(signUpForm.themeColorHex).copy(alpha = 0.55f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("active_page_header_${tab.name.lowercase()}")
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = pageMeta.first,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                        Text(
+                                            text = pageMeta.second,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                    onSwitchPersonaQuick(newStage, defaultAge)
-                                },
-                                onEquipBadgeEmoji = onUpdateAvatarBadge,
-                                onShareCharacterToWall = { headline, body ->
-                                    onCreatePost("Studio Art", headline, body)
-                                }
-                            )
-
-                            // Stages Of Life Resource Hub (Mental Health Hotlines, FAFSA/Loans, Jobs, Education + Admin Verification)
-                            com.example.ui.components.ResourceHubCard(
-                                currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                onShareResourceToWall = { headline, body ->
-                                    onCreatePost("Resource", headline, body)
-                                }
-                            )
-
-                            // Stages Of Life Community Hub (Firestore Shared Life Stage Tips & Resources + Helpful Upvote Mechanism)
-                            com.example.ui.components.CommunityLifeStageHubCard(
-                                postsState = postsState,
-                                currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                currentPersonaRole = signUpForm.role.ifBlank { profile.role },
-                                onCreateFirestoreTipOrResource = { category, title, content ->
-                                    onCreatePost(category, title, content)
-                                },
-                                onUpvoteFirestorePost = { wallPost ->
-                                    onLikePost(wallPost)
-                                },
-                                onRewardHelpfulVote = {
-                                    onRewardHelpfulPostBonus()
-                                },
-                                onReportContent = onReportContent
-                            )
-
-                            // Explore the App Gallery & Remix Studio + Personal API Key Quota Auto-Switch
-                            com.example.ui.components.AppGalleryAndApiKeyQuotaCard(
-                                onApplyRemixedAppTheme = { colorHex, styleId, makeTransparent ->
-                                    onThemeColorSelect(colorHex)
-                                    onThemeVisualStyleSelect(styleId)
-                                    if (makeTransparent) {
-                                        onTransparencyChange(1.0f)
+                                    OutlinedButton(
+                                        onClick = { onSelectTab(DashboardTab.HUB_3D) },
+                                        shape = RoundedCornerShape(50),
+                                        modifier = Modifier.testTag("back_to_home_button_${tab.name.lowercase()}")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                            contentDescription = "Back to Home",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Home", style = MaterialTheme.typography.labelMedium)
                                     }
-                                },
-                                onShareRemixToWall = { headline, body ->
-                                    onCreatePost("Remix", headline, body)
                                 }
-                            )
-
-                            // Compliant Educational Digital Asset & Market Literacy Simulator
-                            com.example.ui.components.DigitalAssetMarketSimulatorCard(
-                                equalCoinsBalance = virtualCurrencyBalance,
-                                onLogSimulatedBudgetPractice = { title, category, amountDollars ->
-                                    onAddBudgetItem(title, category, amountDollars)
-                                },
-                                onShareSimulationToWall = { headline, body ->
-                                    onCreatePost("Milestone", headline, body)
-                                }
-                            )
-
-                            // System-Wide Material 3 Dark Mode & Solid Color Card
-                            com.example.ui.components.SystemWideDarkModeControlCard(
-                                isDarkMode = isDarkMode,
-                                onSetDarkMode = onSetDarkMode,
-                                backgroundTransparency = backgroundTransparency,
-                                onTransparencyChange = onTransparencyChange,
-                                currentThemeHex = signUpForm.themeColorHex,
-                                onSelectThemeColor = onThemeColorSelect
-                            )
-
-                            BackgroundTransparencyControlBarCard(
-                                backgroundTransparency = backgroundTransparency,
-                                onTransparencyChange = onTransparencyChange,
-                                currentThemeHex = signUpForm.themeColorHex,
-                                onSelectColorHex = onThemeColorSelect,
-                                onOpenMaintenancePage = {
-                                    onSelectTab(DashboardTab.MAINTENANCE_SETTINGS)
-                                }
-                            )
+                            }
                         }
 
-                        // Active Page Content (Consolidated into 6 primary sections)
                         when (tab) {
                             DashboardTab.HUB_3D -> {
-                                ThreeDProfileAndFeedTab(
-                                    profile = profile,
-                                    customProfileBitmap = customProfileBitmap,
-                                    selected3DAvatarResId = selected3DAvatarResId,
-                                    avatarEmojiBadge = avatarEmojiBadge,
-                                    postsState = postsState,
-                                    isPlayingMusic = isPlayingMusic,
-                                    isDarkMode = isDarkMode,
-                                    everyLoginSuggestions = everyLoginSuggestions,
-                                    selectedSportsIds = selectedSportsIds,
-                                    learnedInterests = learnedInterests,
-                                    learnedLifestyle = learnedLifestyle,
-                                    learnedSchedule = learnedSchedule,
-                                    learnedResearch = learnedResearch,
-                                    learnedSignals = learnedSignals,
-                                    aiAdaptivePlanState = aiAdaptivePlanState,
-                                    onSetDarkMode = onSetDarkMode,
-                                    onToggleMusic = onToggleMusic,
-                                    onSelectBackgroundSongPreset = onSelectBackgroundSongPreset,
-                                    onToggleSport = onToggleSport,
-                                    onToggleLearnedInterest = onToggleLearnedInterest,
-                                    onToggleLearnedLifestyle = onToggleLearnedLifestyle,
-                                    onToggleLearnedSchedule = onToggleLearnedSchedule,
-                                    onToggleLearnedResearch = onToggleLearnedResearch,
-                                    onAddCustomLearningSignal = onAddCustomLearningSignal,
-                                    onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
-                                    onRefreshLoginSuggestions = onRefreshLoginSuggestions,
-                                    onOpenNewsAndSportsTab = { onSelectTab(DashboardTab.NEWS_SPORTS) },
-                                    onOpenMusicExternal = {
-                                        val url = buildMusicPlatformSearchUrl(
-                                            profile.musicPlatform,
-                                            profile.musicTrackTitle
-                                        )
-                                        launchWebUrl(url)
-                                    },
-                                    onSwitchPersonaQuick = onSwitchPersonaQuick,
-                                    onSelect3DAvatarPreset = onSelect3DAvatarPreset,
-                                    onThemeColorSelect = onThemeColorSelect,
-                                    currentVisualStyleId = currentVisualStyleId,
-                                    onThemeVisualStyleSelect = onThemeVisualStyleSelect,
-                                    onPersistThemeToFirestore = onSaveProfileFromForm,
-                                    onMusicChange = onMusicChange,
-                                    onNavigateToThemeAndPhotoCreator = {
-                                        onSelectTab(DashboardTab.THEME_PROFILE)
-                                    },
-                                    onCreatePost = onCreatePost,
-                                    onLikePost = onLikePost,
-                                    onDeletePost = onDeletePost,
-                                    userInteractionsState = userInteractionsState,
-                                    personalizedInsightsState = personalizedInsightsState,
-                                    budgetState = budgetState,
-                                    onGenerateGeminiInsights = onGenerateGeminiInsights,
-                                    onLogInteraction = onLogInteraction,
-                                    onDeleteInteraction = onDeleteInteraction,
-                                    onAddBudgetItem = onAddBudgetItem,
-                                    onUpdateProfileBitmap = onUpdateProfileBitmap,
-                                    onSelectDashboardTab = onSelectTab,
-                                    onAdvanceThemeAndColor = onAdvanceThemeAndColor,
-                                    careerMilestonesState = careerMilestonesState,
-                                    onAddCareerMilestone = onAddCareerMilestone,
-                                    onUpdateCareerMilestoneStatus = onUpdateCareerMilestoneStatus,
-                                    onDeleteCareerMilestone = onDeleteCareerMilestone,
-                                    backgroundTransparency = backgroundTransparency,
-                                    onTransparencyChange = onTransparencyChange,
-                                    onExecuteUniversalSearch = { executeUniversalSearch(it) },
-                                    onReportContent = onShowReportDialog,
-                                    onConnectSpotify = { musicServiceToConnect = "Spotify" },
-                                    onConnectAppleMusic = { musicServiceToConnect = "Apple Music" },
-                                    onDisconnectSpotify = onDisconnectSpotify,
-                                    onDisconnectAppleMusic = onDisconnectAppleMusic,
-                                    onTipPostAuthor = { post ->
-                                        onTipCommunityUser(
-                                            post.authorName,
-                                            15L,
-                                            "Thank you for sharing '${post.title.take(28)}'!"
-                                        )
-                                    }
-                                )
+                                var homeSection by rememberSaveable { mutableStateOf("STAGE") }
 
-                                // Insert News & Sports into Home Hub for simplicity
-                                RealNewsAndSportsHubCard(
-                                    onShareToWall = { headline, body ->
-                                        onCreatePost("News & Sports Update", headline, body)
+                                // Compact Single-Row Welcome & Direct Install/Pages Bar
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                                    border = BorderStroke(1.dp, accentColor.copy(alpha = 0.55f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("home_compact_welcome_bar")
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "${profile.displayName} • ${profile.role.uppercase()} Stage",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "Tap links below to jump to any page or view",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            OutlinedButton(
+                                                onClick = { showAllPagesSheet = true },
+                                                shape = RoundedCornerShape(50),
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                border = BorderStroke(1.dp, HoloCyan),
+                                                modifier = Modifier
+                                                    .minimumInteractiveComponentSize()
+                                                    .testTag("home_open_all_pages_btn")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Apps,
+                                                    contentDescription = "All Pages",
+                                                    tint = HoloCyan,
+                                                    modifier = Modifier.size(15.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Pages", style = MaterialTheme.typography.labelSmall, color = HoloCyan, fontWeight = FontWeight.Bold)
+                                            }
+                                            Button(
+                                                onClick = { showInstallPublishSheet = true },
+                                                shape = RoundedCornerShape(50),
+                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = CyberEmerald,
+                                                    contentColor = Color.Black
+                                                ),
+                                                modifier = Modifier
+                                                    .minimumInteractiveComponentSize()
+                                                    .testTag("home_quick_install_publish_btn")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Download,
+                                                    contentDescription = "Install & Publish",
+                                                    modifier = Modifier.size(15.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Install", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold)
+                                            }
+                                        }
                                     }
-                                )
+                                }
+
+                                // Clean Single-Focus Home Link Bar (renders 1 view at a time for minimal scrolling)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "STAGE" to "🎛️ My Stage",
+                                        "FEED" to "🌐 Social Wall",
+                                        "PAGES" to "🔗 All Links",
+                                        "SETUP" to "🧭 3-Step Setup",
+                                        "INSTALL" to "📲 Publish & Install"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = homeSection == key,
+                                            onClick = { homeSection = key },
+                                            label = {
+                                                Text(
+                                                    text = label,
+                                                    fontWeight = if (homeSection == key) FontWeight.ExtraBold else FontWeight.Medium
+                                                )
+                                            },
+                                            modifier = Modifier.testTag("home_section_link_${key.lowercase()}")
+                                        )
+                                    }
+                                }
+
+                                if (homeSection == "STAGE") {
+                                    PersonaDashboardComponent(
+                                        currentRole = profile.role,
+                                        currentDisplayName = profile.displayName,
+                                        personaStageDataMap = personaStageDataMap,
+                                        isSaving = isPersonaStageSaving,
+                                        statusBanner = personaStageStatusBanner,
+                                        isAuthenticatedForCloud = isAuthenticatedForCloud,
+                                        onSelectLifeStage = { stageId, defaultAge, accentHex ->
+                                            onSwitchPersonaQuick(stageId, defaultAge)
+                                            onThemeColorSelect(accentHex)
+                                        },
+                                        onSavePersonaStageData = onSavePersonaStageData,
+                                        onNavigateToTab = onSelectTab,
+                                        onShareToWall = onCreatePost
+                                    )
+                                }
+
+                                if (homeSection == "PAGES") {
+                                    WereAllEquals3DHeroShowcaseBanner()
+
+                                    Card(
+                                        shape = RoundedCornerShape(18.dp),
+                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                        border = BorderStroke(1.dp, HoloCyan.copy(alpha = 0.45f)),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("home_explore_pages_directory")
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(14.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text(
+                                                text = "🔗 Direct Page Links (Tap Any Button)",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.ExtraBold
+                                            )
+                                            FlowRow(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                listOf(
+                                                    DashboardTab.STUDIO_ARCADE to "🎬 Reels & Studio",
+                                                    DashboardTab.THEME_PROFILE to "🎨 Profile & 3D",
+                                                    DashboardTab.FRIENDS to "👥 Friends",
+                                                    DashboardTab.MESSAGING to "💬 Messages",
+                                                    DashboardTab.VIDEO_CHAT to "📹 Video Calls",
+                                                    DashboardTab.FINANCE_GOALS to "💰 Wallet",
+                                                    DashboardTab.RESOURCES to "🎓 Resources",
+                                                    DashboardTab.AI_TOOLS to "🤖 AI Tools",
+                                                    DashboardTab.NEWS_SPORTS to "📰 News & Sports",
+                                                    DashboardTab.DELIVERY_DRIVING to "🚗 Delivery",
+                                                    DashboardTab.STABILITY_LOUNGE to "🛍️ Market & 18+",
+                                                    DashboardTab.CODE_OF_CONDUCT to "🛡️ Safety",
+                                                    DashboardTab.MAINTENANCE_SETTINGS to "⚙️ Settings & APK"
+                                                ).forEach { (destTab, destLabel) ->
+                                                    OutlinedButton(
+                                                        onClick = { onSelectTab(destTab) },
+                                                        shape = RoundedCornerShape(50),
+                                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.55f)),
+                                                        modifier = Modifier
+                                                            .minimumInteractiveComponentSize()
+                                                            .testTag("home_dir_link_${destTab.name.lowercase()}")
+                                                    ) {
+                                                        Text(
+                                                            text = destLabel,
+                                                            style = MaterialTheme.typography.labelMedium,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Icon(
+                                                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                                                            contentDescription = "Open $destLabel",
+                                                            modifier = Modifier.size(13.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (homeSection == "SETUP") {
+                                    PersonaSelectionComponent(
+                                        currentRole = profile.role,
+                                        currentDisplayName = profile.displayName,
+                                        currentBio = profile.bio,
+                                        isDarkMode = isDarkMode,
+                                        onApplyCustomizedExperience = { roleKey, defaultAge, accentHex, visualStyleId, selectedTopics ->
+                                            onSwitchPersonaQuick(roleKey, defaultAge)
+                                            onThemeColorSelect(accentHex)
+                                            onThemeVisualStyleSelect(visualStyleId)
+                                            selectedTopics.forEach { onToggleLearnedInterest(it) }
+                                            val normalizedId = normalizePersonaStageId(roleKey)
+                                            val existingStage = personaStageDataMap[normalizedId]
+                                                ?: buildDefaultPersonaStageData(normalizedId)
+                                            onSavePersonaStageData(
+                                                existingStage.copy(
+                                                    stageId = normalizedId,
+                                                    pinnedTopics = selectedTopics.distinct().take(12)
+                                                )
+                                            )
+                                            homeSection = "STAGE"
+                                        },
+                                        onSharePersonaChoiceToFeed = onCreatePost
+                                    )
+                                }
+
+                                if (homeSection == "INSTALL") {
+                                    PlatformReleaseAndDownloadHubCard(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        onTriggerFullCloudSync = onSaveProfileFromForm
+                                    )
+                                    DownloadAndInstallAppCenterCard()
+                                }
+
+                                if (homeSection == "FEED") {
+                                    ThreeDProfileAndFeedTab(
+                                        profile = profile,
+                                        customProfileBitmap = customProfileBitmap,
+                                        selected3DAvatarResId = selected3DAvatarResId,
+                                        avatarEmojiBadge = avatarEmojiBadge,
+                                        postsState = postsState,
+                                        isPlayingMusic = isPlayingMusic,
+                                        isDarkMode = isDarkMode,
+                                        everyLoginSuggestions = everyLoginSuggestions,
+                                        selectedSportsIds = selectedSportsIds,
+                                        learnedInterests = learnedInterests,
+                                        learnedLifestyle = learnedLifestyle,
+                                        learnedSchedule = learnedSchedule,
+                                        learnedResearch = learnedResearch,
+                                        learnedSignals = learnedSignals,
+                                        aiAdaptivePlanState = aiAdaptivePlanState,
+                                        onSetDarkMode = onSetDarkMode,
+                                        onToggleMusic = onToggleMusic,
+                                        onSelectBackgroundSongPreset = onSelectBackgroundSongPreset,
+                                        onToggleSport = onToggleSport,
+                                        onToggleLearnedInterest = onToggleLearnedInterest,
+                                        onToggleLearnedLifestyle = onToggleLearnedLifestyle,
+                                        onToggleLearnedSchedule = onToggleLearnedSchedule,
+                                        onToggleLearnedResearch = onToggleLearnedResearch,
+                                        onAddCustomLearningSignal = onAddCustomLearningSignal,
+                                        onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
+                                        onRefreshLoginSuggestions = onRefreshLoginSuggestions,
+                                        onOpenNewsAndSportsTab = { onSelectTab(DashboardTab.NEWS_SPORTS) },
+                                        onOpenMusicExternal = {
+                                            val url = buildMusicPlatformSearchUrl(
+                                                profile.musicPlatform,
+                                                profile.musicTrackTitle
+                                            )
+                                            launchWebUrl(url)
+                                        },
+                                        onSwitchPersonaQuick = onSwitchPersonaQuick,
+                                        onSelect3DAvatarPreset = onSelect3DAvatarPreset,
+                                        onThemeColorSelect = onThemeColorSelect,
+                                        currentVisualStyleId = currentVisualStyleId,
+                                        onThemeVisualStyleSelect = onThemeVisualStyleSelect,
+                                        onPersistThemeToFirestore = onSaveProfileFromForm,
+                                        onMusicChange = onMusicChange,
+                                        onNavigateToThemeAndPhotoCreator = {
+                                            onSelectTab(DashboardTab.THEME_PROFILE)
+                                        },
+                                        onCreatePost = onCreatePost,
+                                        onLikePost = onLikePost,
+                                        onDeletePost = onDeletePost,
+                                        userInteractionsState = userInteractionsState,
+                                        personalizedInsightsState = personalizedInsightsState,
+                                        budgetState = budgetState,
+                                        onGenerateGeminiInsights = onGenerateGeminiInsights,
+                                        onLogInteraction = onLogInteraction,
+                                        onDeleteInteraction = onDeleteInteraction,
+                                        onAddBudgetItem = onAddBudgetItem,
+                                        onUpdateProfileBitmap = onUpdateProfileBitmap,
+                                        onSelectDashboardTab = onSelectTab,
+                                        onAdvanceThemeAndColor = onAdvanceThemeAndColor,
+                                        careerMilestonesState = careerMilestonesState,
+                                        onAddCareerMilestone = onAddCareerMilestone,
+                                        onUpdateCareerMilestoneStatus = onUpdateCareerMilestoneStatus,
+                                        onDeleteCareerMilestone = onDeleteCareerMilestone,
+                                        backgroundTransparency = backgroundTransparency,
+                                        onTransparencyChange = onTransparencyChange,
+                                        onExecuteUniversalSearch = { executeUniversalSearch(it) },
+                                        onReportContent = onShowReportDialog,
+                                        onConnectSpotify = { musicServiceToConnect = "Spotify" },
+                                        onConnectAppleMusic = { musicServiceToConnect = "Apple Music" },
+                                        onDisconnectSpotify = onDisconnectSpotify,
+                                        onDisconnectAppleMusic = onDisconnectAppleMusic,
+                                        onTipPostAuthor = { post ->
+                                            onTipCommunityUser(
+                                                post.authorName,
+                                                15L,
+                                                "Thank you for sharing '${post.title.take(28)}'!"
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+
+                            DashboardTab.STUDIO_ARCADE -> {
+                                var studioSection by rememberSaveable { mutableStateOf("REELS") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "REELS" to "🎬 Video Reels",
+                                        "TEXT_TO_VIDEO" to "🎥 Text-to-Video",
+                                        "PHOTO" to "📸 Photo Studio",
+                                        "ARCADE" to "🎮 Arcade & Draw",
+                                        "ALL" to "✨ Show All"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = studioSection == key,
+                                            onClick = { studioSection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("studio_filter_${key.lowercase()}")
+                                        )
+                                    }
+                                }
+
+                                if (studioSection == "ALL" || studioSection == "REELS") {
+                                    VideoReelsComponent(
+                                        currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        currentPersonaRole = profile.role,
+                                        onShareReelOrCommentToWall = { category, title, content ->
+                                            onCreatePost(category, title, content)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        onReportReelOrComment = { targetType, targetId, targetTitle, authorName ->
+                                            onReportContent(targetId, targetType, "Reported Reel ($targetTitle)", "Author: $authorName")
+                                        }
+                                    )
+                                }
+
+                                if (studioSection == "ALL" || studioSection == "TEXT_TO_VIDEO") {
+                                    TextToVideoGeneratorStudioCard(
+                                        currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        currentPersonaRole = profile.role,
+                                        onPublishGeneratedClipToReels = { title, description, category, accentHex ->
+                                            PublishedVideoReelsStore.publishAiGeneratedReel(
+                                                title = title,
+                                                description = description,
+                                                category = category,
+                                                creatorName = profile.displayName.ifBlank { "Jordan Vance" },
+                                                accentHex = accentHex
+                                            )
+                                            studioSection = "REELS"
+                                        },
+                                        onShareClipToCommunityWall = { category, title, content ->
+                                            onCreatePost(category, title, content)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        }
+                                    )
+                                }
+
+                                if (studioSection == "ALL" || studioSection == "PHOTO") {
+                                    PhotoStudioComponent(
+                                        displayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        currentProfileBitmap = customProfileBitmap,
+                                        selected3DAvatarResId = selected3DAvatarResId,
+                                        onApplyToProfile = onUpdateProfileBitmap,
+                                        onShareCreationToFeed = { category, title, content ->
+                                            onCreatePost(category, title, content)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        }
+                                    )
+
+                                    CreativePhotoStudioCard(
+                                        displayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        currentProfileBitmap = customProfileBitmap,
+                                        selected3DAvatarResId = selected3DAvatarResId,
+                                        userPersona = profile.role,
+                                        onApplyFilteredBitmapToProfile = onUpdateProfileBitmap,
+                                        onLogStudioInteraction = { detail ->
+                                            onLogInteraction("PhotoStudio", detail, "Studio")
+                                        },
+                                        onPublishPhotoToSocialPost = { title, caption, category ->
+                                            onCreatePost(category, title, caption)
+                                        }
+                                    )
+                                }
+
+                                if (studioSection == "ALL" || studioSection == "ARCADE") {
+                                    ProfileYouTubeReelsAndGamesHubCard(
+                                        displayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        currentRole = profile.role,
+                                        currentAge = profile.age,
+                                        onSwitchToTeenOrKidProfile = onSwitchPersonaQuick,
+                                        onPublishVideoOrReelToDashboard = { title, body ->
+                                            onCreatePost("Studio Art", title, body)
+                                        },
+                                        onLogHubInteraction = onLogInteraction,
+                                        onOpenFullDashboardFeed = { onSelectTab(DashboardTab.HUB_3D) }
+                                    )
+
+                                    StudioAndArcadeTab(
+                                        highScore = profile.arcadeHighScore,
+                                        onShareStudioCreation = { title, body ->
+                                            onCreatePost("Studio Art", title, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        onNewHighScore = onNewArcadeHighScore
+                                    )
+                                }
                             }
 
                             DashboardTab.THEME_PROFILE -> {
-                                CreateThemeProfileScreen(
-                                    formState = signUpForm,
-                                    customProfileBitmap = customProfileBitmap,
-                                    selected3DAvatarResId = selected3DAvatarResId,
-                                    selectedAvatarTags = selectedAvatarTags,
-                                    avatarEmojiBadge = avatarEmojiBadge,
-                                    aiImageState = aiProfileImageState,
-                                    isPlayingMusic = isPlayingMusic,
-                                    isDarkMode = isDarkMode,
-                                    onSetDarkMode = onSetDarkMode,
-                                    selectedSportsIds = selectedSportsIds,
-                                    learnedInterests = learnedInterests,
-                                    learnedLifestyle = learnedLifestyle,
-                                    learnedSchedule = learnedSchedule,
-                                    learnedResearch = learnedResearch,
-                                    learnedSignals = learnedSignals,
-                                    aiAdaptivePlanState = aiAdaptivePlanState,
-                                    onDisplayNameChange = onDisplayNameChange,
-                                    onAgeChange = onAgeChange,
-                                    onLocationChange = onLocationChange,
-                                    onBioChange = onBioChange,
-                                    onRoleSelect = onRoleSelect,
-                                    onThemeColorSelect = onThemeColorSelect,
-                                    onThemeVisualStyleSelect = onThemeVisualStyleSelect,
-                                    onMusicChange = onMusicChange,
-                                    onSelectBackgroundSongPreset = onSelectBackgroundSongPreset,
-                                    onToggleMusic = onToggleMusic,
-                                    onToggleSport = onToggleSport,
-                                    onToggleLearnedInterest = onToggleLearnedInterest,
-                                    onToggleLearnedLifestyle = onToggleLearnedLifestyle,
-                                    onToggleLearnedSchedule = onToggleLearnedSchedule,
-                                    onToggleLearnedResearch = onToggleLearnedResearch,
-                                    onAddCustomLearningSignal = onAddCustomLearningSignal,
-                                    onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
-                                    onUpdateProfileBitmap = onUpdateProfileBitmap,
-                                    onSelect3DAvatarPreset = onSelect3DAvatarPreset,
-                                    onToggleAvatarTag = onToggleAvatarTag,
-                                    onUpdateAvatarBadge = onUpdateAvatarBadge,
-                                    onGenerateAiProfilePhoto = onGenerateAiProfilePhoto,
-                                    onPledgeChange = onPledgeChange,
-                                    onSaveProfile = onSaveProfileFromForm,
-                                    onPublishPostToDashboard = { title, body ->
-                                        onCreatePost("Update", title, body)
-                                    },
-                                    onOpenDashboardFeed = {
-                                        onSelectTab(DashboardTab.HUB_3D)
-                                    },
-                                    backgroundTransparency = backgroundTransparency,
-                                    onTransparencyChange = onTransparencyChange,
-                                    onOpenMaintenancePage = {
-                                        onSelectTab(DashboardTab.MAINTENANCE_SETTINGS)
-                                    },
-                                    virtualCurrencyBalance = virtualCurrencyBalance,
-                                    dailyBonusClaimed = dailyBonusClaimed,
-                                    loginStreakDays = loginStreakDays,
-                                    claimedBadgeIds = claimedBadgeIds,
-                                    unlockedShopItemIds = unlockedShopItemIds,
-                                    currencyTransactions = currencyTransactions,
-                                    currencyStatusBanner = currencyStatusBanner,
-                                    onClaimDailyLoginBonus = onClaimDailyLoginBonus,
-                                    onRewardHelpfulPostBonus = onRewardHelpfulPostBonus,
-                                    onClaimBadgeQuest = onClaimBadgeQuest,
-                                    onPurchaseOrApplyShopItem = onPurchaseOrApplyShopItem,
-                                    onTipCommunityUser = onTipCommunityUser
-                                )
+                                var profileSection by rememberSaveable { mutableStateOf("3D_CUSTOMIZER") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "3D_CUSTOMIZER" to "🧊 3D Customizer",
+                                        "AVATARS" to "🎭 Avatars & Personas",
+                                        "EDITOR" to "📝 Full Profile & Coins",
+                                        "DATA_EXPORT" to "📥 Download Data",
+                                        "STUDIO_3D" to "🌌 3D Scene"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = profileSection == key,
+                                            onClick = { profileSection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("profile_link_${key.lowercase()}")
+                                        )
+                                    }
+                                }
+
+                                if (profileSection == "DATA_EXPORT") {
+                                    ProfileDownloadDataCard(exportPayload = exportPayload)
+                                }
+
+                                val active3DConfig = profile3DConfigs.firstOrNull { it.id == "active" }
+                                    ?: profile3DConfigs.firstOrNull()
+                                    ?: Profile3DConfig()
+
+                                if (profileSection == "3D_CUSTOMIZER") {
+                                    Profile3DCustomizerComponent(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        activeConfig = active3DConfig,
+                                        savedConfigs = profile3DConfigs,
+                                        isAuthenticated = isAuthenticatedForCloud,
+                                        isSavingToCloud = isProfile3DSaving,
+                                        cloudStatusMessage = profile3DStatusBanner,
+                                        onSaveConfigToFirestore = onSaveProfile3DConfig,
+                                        onDeleteSavedConfig = onDeleteProfile3DConfig,
+                                        onApplyPrimaryThemeHex = onThemeColorSelect,
+                                        onApplyAvatarBadgeEmoji = onUpdateAvatarBadge,
+                                        onApplyCustomizedAvatarBitmap = onUpdateProfileBitmap,
+                                        onShareLookToWall = { headline, body ->
+                                            onCreatePost("Studio Art", headline, body)
+                                        }
+                                    )
+                                }
+
+                                if (profileSection == "AVATARS") {
+                                    Persona3DAvatarSelectionCard(
+                                        currentPersonaRole = profile.role,
+                                        selected3DAvatarResId = selected3DAvatarResId,
+                                        onSelect3DAvatarPreset = onSelect3DAvatarPreset,
+                                        onSelectPersonaStage = { stage -> onRoleSelect(stage.lowercase()) },
+                                        onEquipBadgeEmoji = onUpdateAvatarBadge,
+                                        onShareCharacterToWall = { title, body ->
+                                            onCreatePost("Update", title, body)
+                                        },
+                                        currentVisualThemeId = currentVisualStyleId,
+                                        onSelectVisualTheme = { styleId, primaryHex ->
+                                            onThemeVisualStyleSelect(styleId)
+                                            onThemeColorSelect(primaryHex)
+                                        },
+                                        onSaveAvatarToFirestore = onSaveProfileFromForm
+                                    )
+
+                                    PersonaProfileSystemCard(
+                                        currentRole = profile.role,
+                                        currentAgeText = signUpForm.ageText.ifBlank { profile.age.toString() },
+                                        currentVisualStyleId = currentVisualStyleId,
+                                        currentThemeHex = signUpForm.themeColorHex,
+                                        selectedInterests = learnedInterests,
+                                        onSelectPersona = { roleKey, defaultAge, defaultHex, defaultStyleId ->
+                                            onSwitchPersonaQuick(roleKey, defaultAge.toLongOrNull() ?: 26L)
+                                            onThemeColorSelect(defaultHex)
+                                            onThemeVisualStyleSelect(defaultStyleId)
+                                        },
+                                        onApplyPersonaTheme = { visualStyleId, colorHex, badgeEmoji ->
+                                            onThemeVisualStyleSelect(visualStyleId)
+                                            onThemeColorSelect(colorHex)
+                                            onUpdateAvatarBadge(badgeEmoji)
+                                        },
+                                        onPinPersonaInterest = onToggleLearnedInterest,
+                                        onSharePersonaActionToWall = { title, content ->
+                                            onCreatePost("Milestone", title, content)
+                                        }
+                                    )
+                                }
+
+                                if (profileSection == "EDITOR") {
+                                    CreateThemeProfileScreen(
+                                        formState = signUpForm,
+                                        customProfileBitmap = customProfileBitmap,
+                                        selected3DAvatarResId = selected3DAvatarResId,
+                                        selectedAvatarTags = selectedAvatarTags,
+                                        avatarEmojiBadge = avatarEmojiBadge,
+                                        aiImageState = aiProfileImageState,
+                                        isPlayingMusic = isPlayingMusic,
+                                        isDarkMode = isDarkMode,
+                                        onSetDarkMode = onSetDarkMode,
+                                        selectedSportsIds = selectedSportsIds,
+                                        learnedInterests = learnedInterests,
+                                        learnedLifestyle = learnedLifestyle,
+                                        learnedSchedule = learnedSchedule,
+                                        learnedResearch = learnedResearch,
+                                        learnedSignals = learnedSignals,
+                                        aiAdaptivePlanState = aiAdaptivePlanState,
+                                        onDisplayNameChange = onDisplayNameChange,
+                                        onAgeChange = onAgeChange,
+                                        onLocationChange = onLocationChange,
+                                        onBioChange = onBioChange,
+                                        onRoleSelect = onRoleSelect,
+                                        onThemeColorSelect = onThemeColorSelect,
+                                        onThemeVisualStyleSelect = onThemeVisualStyleSelect,
+                                        onMusicChange = onMusicChange,
+                                        onSelectBackgroundSongPreset = onSelectBackgroundSongPreset,
+                                        onToggleMusic = onToggleMusic,
+                                        onToggleSport = onToggleSport,
+                                        onToggleLearnedInterest = onToggleLearnedInterest,
+                                        onToggleLearnedLifestyle = onToggleLearnedLifestyle,
+                                        onToggleLearnedSchedule = onToggleLearnedSchedule,
+                                        onToggleLearnedResearch = onToggleLearnedResearch,
+                                        onAddCustomLearningSignal = onAddCustomLearningSignal,
+                                        onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
+                                        onUpdateProfileBitmap = onUpdateProfileBitmap,
+                                        onSelect3DAvatarPreset = onSelect3DAvatarPreset,
+                                        onToggleAvatarTag = onToggleAvatarTag,
+                                        onUpdateAvatarBadge = onUpdateAvatarBadge,
+                                        onGenerateAiProfilePhoto = onGenerateAiProfilePhoto,
+                                        onPledgeChange = onPledgeChange,
+                                        onSaveProfile = onSaveProfileFromForm,
+                                        onPublishPostToDashboard = { title, body ->
+                                            onCreatePost("Update", title, body)
+                                        },
+                                        onOpenDashboardFeed = {
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        backgroundTransparency = backgroundTransparency,
+                                        onTransparencyChange = onTransparencyChange,
+                                        onOpenMaintenancePage = {
+                                            onSelectTab(DashboardTab.MAINTENANCE_SETTINGS)
+                                        },
+                                        virtualCurrencyBalance = virtualCurrencyBalance,
+                                        dailyBonusClaimed = dailyBonusClaimed,
+                                        loginStreakDays = loginStreakDays,
+                                        claimedBadgeIds = claimedBadgeIds,
+                                        unlockedShopItemIds = unlockedShopItemIds,
+                                        currencyTransactions = currencyTransactions,
+                                        currencyStatusBanner = currencyStatusBanner,
+                                        onClaimDailyLoginBonus = onClaimDailyLoginBonus,
+                                        onRewardHelpfulPostBonus = onRewardHelpfulPostBonus,
+                                        onClaimBadgeQuest = onClaimBadgeQuest,
+                                        onPurchaseOrApplyShopItem = onPurchaseOrApplyShopItem,
+                                        onTipCommunityUser = onTipCommunityUser
+                                    )
+                                }
+
+                                if (profileSection == "STUDIO_3D") {
+                                    ThreeJsStudio3DSceneCard(
+                                        onShareSceneToWall = { title, body ->
+                                            onCreatePost("Studio Art", title, body)
+                                        }
+                                    )
+                                }
                             }
 
                             DashboardTab.FRIENDS -> {
                                 FriendsAndDiscoveryScreen(
                                     friendsState = friendsState,
                                     incomingRequestsState = incomingRequestsState,
-                                    discoveredUsers = discoveredUsers,
+                                    discoveredUsers = visibleDiscoveredUsers,
                                     myPhoneNumber = profile.phoneNumber,
                                     myUserProfile = profile,
                                     onUpdatePhoneNumber = onUpdatePhoneNumber,
@@ -1011,6 +1378,8 @@ fun MainDashboardScreen(
                                     onAcceptRequest = onAcceptRequest,
                                     onDeclineRequest = onDeclineRequest,
                                     onShowReportDialog = onShowReportDialog,
+                                    blockedUsers = blockedUsers,
+                                    onBlockUser = onBlockUser,
                                     onBack = { onSelectTab(DashboardTab.HUB_3D) }
                                 )
                             }
@@ -1029,15 +1398,6 @@ fun MainDashboardScreen(
                                         onSelectTab(DashboardTab.VIDEO_CHAT)
                                     }
                                 )
-
-                                // Add Studio & Arcade to Community tab for simplicity
-                                StudioAndArcadeTab(
-                                    highScore = profile.arcadeHighScore,
-                                    onShareStudioCreation = { title, body ->
-                                        onCreatePost("Studio Art", title, body)
-                                    },
-                                    onNewHighScore = onNewArcadeHighScore
-                                )
                             }
 
                             DashboardTab.VIDEO_CHAT -> {
@@ -1054,73 +1414,310 @@ fun MainDashboardScreen(
                             }
 
                             DashboardTab.FINANCE_GOALS -> {
-                                com.example.ui.components.VirtualCurrencySystemCard(
-                                    balance = virtualCurrencyBalance,
-                                    dailyBonusClaimed = dailyBonusClaimed,
-                                    streakDays = loginStreakDays,
-                                    claimedBadgeIds = claimedBadgeIds,
-                                    unlockedItemIds = unlockedShopItemIds,
-                                    transactions = currencyTransactions,
-                                    statusBanner = currencyStatusBanner,
-                                    accentColor = parseThemeHex(signUpForm.themeColorHex),
-                                    onClaimDailyLoginBonus = onClaimDailyLoginBonus,
-                                    onRewardHelpfulPostBonus = onRewardHelpfulPostBonus,
-                                    onClaimBadgeQuest = onClaimBadgeQuest,
-                                    onPurchaseOrApplyShopItem = onPurchaseOrApplyShopItem,
-                                    onTipCommunityUser = onTipCommunityUser
-                                )
-
-                                com.example.ui.components.FinancialTipOfTheDayCard(
-                                    userRole = signUpForm.role,
-                                    userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
-                                    onApplyTipSavingsAction = { title, amountDollars ->
-                                        onAddBudgetItem(title, "Save", amountDollars)
-                                    },
-                                    onShareTipToWall = { headline, body ->
-                                        onCreatePost("Milestone", headline, body)
+                                var financeSection by rememberSaveable { mutableStateOf("WALLET") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "WALLET" to "💳 Wallet & Coins",
+                                        "VAULT" to "🏦 Savings Vault",
+                                        "LITERACY" to "📊 Literacy & Tips"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = financeSection == key,
+                                            onClick = { financeSection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("finance_link_${key.lowercase()}")
+                                        )
                                     }
-                                )
+                                }
 
-                                com.example.ui.components.DigitalAssetMarketSimulatorCard(
-                                    equalCoinsBalance = virtualCurrencyBalance,
-                                    onLogSimulatedBudgetPractice = { title, category, amountDollars ->
-                                        onAddBudgetItem(title, category, amountDollars)
-                                    },
-                                    onShareSimulationToWall = { headline, body ->
-                                        onCreatePost("Milestone", headline, body)
+                                if (financeSection == "WALLET") {
+                                    DigitalWalletCard(
+                                        profile = profile,
+                                        budgetState = budgetState,
+                                        onAddWalletTransaction = onAddBudgetItem
+                                    )
+
+                                    VirtualCurrencySystemCard(
+                                        balance = virtualCurrencyBalance,
+                                        dailyBonusClaimed = dailyBonusClaimed,
+                                        streakDays = loginStreakDays,
+                                        claimedBadgeIds = claimedBadgeIds,
+                                        unlockedItemIds = unlockedShopItemIds,
+                                        transactions = currencyTransactions,
+                                        statusBanner = currencyStatusBanner,
+                                        accentColor = parseThemeHex(signUpForm.themeColorHex),
+                                        onClaimDailyLoginBonus = onClaimDailyLoginBonus,
+                                        onRewardHelpfulPostBonus = onRewardHelpfulPostBonus,
+                                        onClaimBadgeQuest = onClaimBadgeQuest,
+                                        onPurchaseOrApplyShopItem = onPurchaseOrApplyShopItem,
+                                        onTipCommunityUser = onTipCommunityUser
+                                    )
+                                }
+
+                                if (financeSection == "VAULT") {
+                                    PersonalFinanceGoalsScreen(
+                                        profile = profile,
+                                        budgetState = budgetState,
+                                        onAddGoalEntryToFirestore = onAddBudgetItem,
+                                        onDeleteGoalEntryFromFirestore = onDeleteBudgetItem,
+                                        onUpdateOverallSavingsGoalInFirestore = onUpdateSavingsGoal,
+                                        onShareMilestoneToWall = { title, content ->
+                                            onCreatePost("Milestone", title, content)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        isBiometricUnlocked = isFinancialVaultUnlocked,
+                                        onBiometricUnlockSuccess = onUnlockFinancialVault,
+                                        onBiometricLockVault = onLockFinancialVault
+                                    )
+                                }
+
+                                if (financeSection == "LITERACY") {
+                                    FinancialLiteracyTrackerCard(
+                                        budgetState = budgetState,
+                                        onAddBudgetItem = onAddBudgetItem,
+                                        onDeleteBudgetItem = onDeleteBudgetItem,
+                                        onShareSummaryToWall = { headline, body ->
+                                            onCreatePost("Milestone", headline, body)
+                                        },
+                                        userRole = signUpForm.role,
+                                        userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
+                                        equalCoinsBalance = virtualCurrencyBalance
+                                    )
+
+                                    FinancialTipOfTheDayCard(
+                                        userRole = signUpForm.role,
+                                        userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
+                                        onApplyTipSavingsAction = { title, amountDollars ->
+                                            onAddBudgetItem(title, "Save", amountDollars)
+                                        },
+                                        onShareTipToWall = { headline, body ->
+                                            onCreatePost("Milestone", headline, body)
+                                        }
+                                    )
+                                }
+                            }
+
+                            DashboardTab.RESOURCES -> {
+                                var resourceSection by rememberSaveable { mutableStateOf("FINDER") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "FINDER" to "🧭 Aid & 211 Finder",
+                                        "CAREERS" to "🎓 School & Careers",
+                                        "GUIDES" to "📚 Community Guides"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = resourceSection == key,
+                                            onClick = { resourceSection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("resources_link_${key.lowercase()}")
+                                        )
                                     }
-                                )
+                                }
 
-                                com.example.ui.components.WereEqualDonationAndCreatorSupportCard(
-                                    donorDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                    onRecordGivingInBudget = { title, amountDollars ->
-                                        onAddBudgetItem(title, "Give", amountDollars)
-                                    },
-                                    onTipEqualCoinsToCreatorOrCharity = { recipientName, eqcAmount, note ->
-                                        onTipCommunityUser(recipientName, eqcAmount, note)
-                                    },
-                                    onEquipSupporterBadge = onUpdateAvatarBadge,
-                                    onShareDonationToWall = { headline, body ->
-                                        onCreatePost("Milestone", headline, body)
+                                if (resourceSection == "FINDER") {
+                                    FindingResourceHubScreen(
+                                        profile = profile,
+                                        resources = curatedResources,
+                                        searchFilter = universalSearchQuery,
+                                        onOpenResourceUrl = { launchWebUrl(it) },
+                                        onShareResourceToWall = { item ->
+                                            onCreatePost(
+                                                "Resource Guide",
+                                                item.title,
+                                                "${item.subtitle} — Official portal: ${item.url}"
+                                            )
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        onUpdateUserLocationFromGps = onLocationChange,
+                                        onRecordLearnedSignal = onRecordLearnedSignal,
+                                        onActivateStudentAccount = onSwitchPersonaQuick,
+                                        onShareCustomMilestone = { headline, body ->
+                                            onCreatePost("Resource Guide", headline, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        careerMilestonesState = careerMilestonesState,
+                                        onAddCareerMilestone = onAddCareerMilestone,
+                                        onUpdateCareerMilestoneStatus = onUpdateCareerMilestoneStatus,
+                                        onDeleteCareerMilestone = onDeleteCareerMilestone,
+                                        isBiometricUnlocked = isResourceHubUnlocked,
+                                        onUnlockBiometric = onUnlockResourceHub,
+                                        onLockBiometric = onLockResourceHub
+                                    )
+                                }
+
+                                if (resourceSection == "GUIDES") {
+                                    ResourceHubCard(
+                                        currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        onShareResourceToWall = { title, body ->
+                                            onCreatePost("Resource Guide", title, body)
+                                        }
+                                    )
+                                }
+
+                                if (resourceSection == "CAREERS") {
+                                    StudentSchoolAndCareersPortalCard(
+                                        currentRole = profile.role,
+                                        currentAge = profile.age,
+                                        onSelectStudentAccount = { onSwitchPersonaQuick("student", 19L) },
+                                        onOpenExternalUrl = { launchWebUrl(it) },
+                                        onOpenAiStudyTutor = { onSelectTab(DashboardTab.AI_TOOLS) },
+                                        onShareApplicationGoalToWall = { headline, body ->
+                                            onCreatePost("Resource Guide", headline, body)
+                                        },
+                                        careerMilestonesState = careerMilestonesState,
+                                        onAddCareerMilestone = onAddCareerMilestone,
+                                        onUpdateCareerMilestoneStatus = onUpdateCareerMilestoneStatus,
+                                        onDeleteCareerMilestone = onDeleteCareerMilestone
+                                    )
+                                }
+                            }
+
+                            DashboardTab.AI_TOOLS -> {
+                                var aiSection by rememberSaveable { mutableStateOf("STUDY") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "STUDY" to "📚 AI Study Coach",
+                                        "ADAPTIVE" to "🧠 Adaptive Mind",
+                                        "VISION" to "🎨 AI Image & Voice"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = aiSection == key,
+                                            onClick = { aiSection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("ai_link_${key.lowercase()}")
+                                        )
                                     }
-                                )
+                                }
 
-                                PersonalFinanceGoalsScreen(
-                                    profile = profile,
-                                    budgetState = budgetState,
-                                    onAddGoalEntryToFirestore = onAddBudgetItem,
-                                    onDeleteGoalEntryFromFirestore = onDeleteBudgetItem,
-                                    onUpdateOverallSavingsGoalInFirestore = onUpdateSavingsGoal,
-                                    onShareMilestoneToWall = { title, content ->
-                                        onCreatePost("Milestone", title, content)
-                                        onSelectTab(DashboardTab.HUB_3D)
-                                    },
-                                    isBiometricUnlocked = isFinancialVaultUnlocked,
-                                    onBiometricUnlockSuccess = onUnlockFinancialVault,
-                                    onBiometricLockVault = onLockFinancialVault
-                                )
+                                if (aiSection == "STUDY") {
+                                    AiToolsAndSchoolResearchScreen(
+                                        profile = profile,
+                                        learnedSignals = learnedSignals,
+                                        aiStudyState = aiStudyState,
+                                        aiFlashcardsState = aiFlashcardsState,
+                                        aiAdaptivePlanState = aiAdaptivePlanState,
+                                        onAskAiStudyTutor = onAskAiStudyTutor,
+                                        onGenerateStudyFlashcards = onGenerateStudyFlashcards,
+                                        onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
+                                        onRecordLearnedSignal = onRecordLearnedSignal,
+                                        onShareStudyGuideToWall = { title, body ->
+                                            onCreatePost("Resource Guide", title, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        }
+                                    )
+                                }
 
-                                // Add Delivery Portal to Wallet tab
+                                if (aiSection == "ADAPTIVE") {
+                                    AdaptiveUserLearningAiBotAndToolsCard(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        userRole = signUpForm.role.ifBlank { profile.role },
+                                        userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
+                                        userLocation = profile.location.ifBlank { signUpForm.location },
+                                        learnedSignals = learnedSignals,
+                                        learnedInterests = learnedInterests,
+                                        learnedLifestyle = learnedLifestyle,
+                                        learnedSchedule = learnedSchedule,
+                                        learnedResearch = learnedResearch,
+                                        aiStudyState = aiStudyState,
+                                        aiFlashcardsState = aiFlashcardsState,
+                                        aiAdaptivePlanState = aiAdaptivePlanState,
+                                        onRecordLearnedSignal = onRecordLearnedSignal,
+                                        onAddCustomLearningSignal = onAddCustomLearningSignal,
+                                        onToggleLearnedInterest = onToggleLearnedInterest,
+                                        onToggleLearnedResearch = onToggleLearnedResearch,
+                                        onAskAiStudyTutor = onAskAiStudyTutor,
+                                        onGenerateStudyFlashcards = onGenerateStudyFlashcards,
+                                        onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
+                                        onShareAiResearchToWall = { headline, body ->
+                                            onCreatePost("Resource Guide", headline, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        }
+                                    )
+                                }
+
+                                if (aiSection == "VISION") {
+                                    AiImageAndVoiceConversationStudioCard(
+                                        currentProfileBitmap = customProfileBitmap,
+                                        aiProfileImageState = aiProfileImageState,
+                                        onGenerateNewImageFromPrompt = onGenerateAiProfilePhoto,
+                                        onApplyGeneratedBitmapToProfile = onUpdateProfileBitmap,
+                                        onShareCreationToWall = { title, body ->
+                                            onCreatePost("Studio Art", title, body)
+                                        }
+                                    )
+                                }
+                            }
+
+                            DashboardTab.NEWS_SPORTS -> {
+                                var newsSection by rememberSaveable { mutableStateOf("HUB") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "HUB" to "📰 News & Sports",
+                                        "SUGGESTIONS" to "✨ Daily Suggestions",
+                                        "HOROSCOPES" to "♈ Horoscopes"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = newsSection == key,
+                                            onClick = { newsSection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("news_link_${key.lowercase()}")
+                                        )
+                                    }
+                                }
+
+                                if (newsSection == "SUGGESTIONS") {
+                                    EveryLoginSuggestionsCard(
+                                        displayName = profile.displayName.substringBefore(" "),
+                                        suggestions = everyLoginSuggestions,
+                                        onRefreshSuggestions = onRefreshLoginSuggestions,
+                                        onOpenNewsAndSportsTab = { onSelectTab(DashboardTab.NEWS_SPORTS) }
+                                    )
+                                }
+
+                                if (newsSection == "HUB") {
+                                    RealNewsAndSportsHubCard(
+                                        onShareToWall = { headline, body ->
+                                            onCreatePost("News & Sports Update", headline, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        }
+                                    )
+                                }
+
+                                if (newsSection == "HOROSCOPES") {
+                                    DailyHoroscopesCosmicCard(
+                                        onApplyCosmicTheme = { visualStyleId, colorHex, zodiacEmoji ->
+                                            onThemeVisualStyleSelect(visualStyleId)
+                                            onThemeColorSelect(colorHex)
+                                            onUpdateAvatarBadge(zodiacEmoji)
+                                        },
+                                        onShareHoroscopeToWall = { headline, body ->
+                                            onCreatePost("Daily Affirmation", headline, body)
+                                        }
+                                    )
+                                }
+                            }
+
+                            DashboardTab.DELIVERY_DRIVING -> {
                                 DeliveryAndOrderingPortalScreen(
                                     profile = profile,
                                     onAddDeliveryExpenseToBudget = onAddBudgetItem,
@@ -1130,147 +1727,626 @@ fun MainDashboardScreen(
                                         onSelectTab(DashboardTab.HUB_3D)
                                     }
                                 )
+                            }
 
-                                // Stability Lounge context
-                                StabilityAndLoungeTab(
-                                    profile = profile,
-                                    budgetState = budgetState,
-                                    interactionsState = userInteractionsState,
-                                    postsState = postsState,
-                                    connections = communityConnections,
-                                    onLogInteraction = onLogInteraction,
-                                    onAddBudgetItem = onAddBudgetItem,
-                                    onDeleteBudgetItem = onDeleteBudgetItem,
-                                    onUpdateSavingsGoal = onUpdateSavingsGoal,
-                                    onShareMilestoneToWall = { title, content ->
-                                        onCreatePost("Milestone", title, content)
-                                        onSelectTab(DashboardTab.HUB_3D)
-                                    },
-                                    onShareConnectionGreeting = { conn ->
-                                        onCreatePost(
-                                            "Milestone",
-                                            "Connected with ${conn.name} in WereEqual Lounge!",
-                                            "Bonding over ${conn.sharedInterests.joinToString(", ")} • \"We are all equal\""
+                            DashboardTab.STABILITY_LOUNGE -> {
+                                var loungeSection by rememberSaveable { mutableStateOf("GROWTH") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "GROWTH" to "📈 Market & Growth",
+                                        "DATING" to "💖 18+ Connections",
+                                        "SIMULATOR" to "📊 Asset Simulator",
+                                        "DONATE" to "🤝 Donations"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = loungeSection == key,
+                                            onClick = { loungeSection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("lounge_link_${key.lowercase()}")
                                         )
-                                        onSelectTab(DashboardTab.HUB_3D)
-                                    },
-                                    isFinancialVaultUnlocked = isFinancialVaultUnlocked,
-                                    onUnlockFinancialVault = onUnlockFinancialVault,
-                                    onLockFinancialVault = onLockFinancialVault
-                                )
+                                    }
+                                }
+
+                                if (loungeSection == "GROWTH") {
+                                    StabilityAndLoungeTab(
+                                        profile = profile,
+                                        budgetState = budgetState,
+                                        interactionsState = userInteractionsState,
+                                        postsState = postsState,
+                                        connections = visibleCommunityConnections,
+                                        onLogInteraction = onLogInteraction,
+                                        onAddBudgetItem = onAddBudgetItem,
+                                        onShareMilestoneToWall = { title, content ->
+                                            onCreatePost("Milestone", title, content)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        onShareConnectionGreeting = { conn ->
+                                            onCreatePost(
+                                                "Milestone",
+                                                "Connected with ${conn.name} in WereEqual Lounge!",
+                                                "Bonding over ${conn.sharedInterests.joinToString(", ")} • \"We are all equal\""
+                                            )
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        }
+                                    )
+                                }
+
+                                if (loungeSection == "DATING") {
+                                    AdultProfileDatingHubCard(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        userAge = profile.age,
+                                        userRole = profile.role,
+                                        userLocation = profile.location,
+                                        onSwitchToAdultProfile = { onSwitchPersonaQuick("adult", 25L) },
+                                        onStartVideoDateCall = { onSelectTab(DashboardTab.VIDEO_CHAT) },
+                                        onOpenMessagingWithMatch = { onSelectTab(DashboardTab.MESSAGING) },
+                                        onShareMatchMilestoneToWall = { headline, body ->
+                                            onCreatePost("Milestone", headline, body)
+                                        }
+                                    )
+                                }
+
+                                if (loungeSection == "SIMULATOR") {
+                                    DigitalAssetMarketSimulatorCard(
+                                        equalCoinsBalance = virtualCurrencyBalance,
+                                        onLogSimulatedBudgetPractice = { title, category, amountDollars ->
+                                            onAddBudgetItem(title, category, amountDollars)
+                                        },
+                                        onShareSimulationToWall = { headline, body ->
+                                            onCreatePost("Milestone", headline, body)
+                                        }
+                                    )
+                                }
+
+                                if (loungeSection == "DONATE") {
+                                    WereEqualDonationAndCreatorSupportCard(
+                                        donorDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        onRecordGivingInBudget = { title, amountDollars ->
+                                            onAddBudgetItem(title, "Give", amountDollars)
+                                        },
+                                        onTipEqualCoinsToCreatorOrCharity = { recipientName, eqcAmount, note ->
+                                            onTipCommunityUser(recipientName, eqcAmount, note)
+                                        },
+                                        onEquipSupporterBadge = onUpdateAvatarBadge,
+                                        onShareDonationToWall = { headline, body ->
+                                            onCreatePost("Milestone", headline, body)
+                                        }
+                                    )
+                                }
+                            }
+
+                            DashboardTab.CODE_OF_CONDUCT -> {
+                                var safetySection by rememberSaveable { mutableStateOf("RULES") }
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "RULES" to "🛡️ Rules & Ideas",
+                                        "MODERATION" to "🚩 Moderation",
+                                        "COMMUNITY" to "🤝 Life-Stage Hub",
+                                        "LEADERBOARD" to "🏆 Leaderboard"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = safetySection == key,
+                                            onClick = { safetySection = key },
+                                            label = { Text(label) },
+                                            modifier = Modifier.testTag("safety_link_${key.lowercase()}")
+                                        )
+                                    }
+                                }
+
+                                if (safetySection == "RULES") {
+                                    CodeOfConductScreen(
+                                        userIdeas = userIdeas,
+                                        aiIdeaFeedbackState = aiIdeaFeedbackState,
+                                        onSubmitUserIdea = onSubmitUserIdea,
+                                        onUpvoteUserIdea = onUpvoteUserIdea,
+                                        onExpandIdeaWithAi = onExpandIdeaWithAi
+                                    )
+                                }
+
+                                if (safetySection == "MODERATION") {
+                                    ContentModerationSystemCard(
+                                        onSubmitFlagToBackend = onReportContent
+                                    )
+                                }
+
+                                if (safetySection == "COMMUNITY") {
+                                    CommunityLifeStageHubCard(
+                                        postsState = postsState,
+                                        currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        currentPersonaRole = profile.role,
+                                        onCreateFirestoreTipOrResource = { category, title, content ->
+                                            onCreatePost(category, title, content)
+                                        },
+                                        onUpvoteFirestorePost = onLikePost,
+                                        onRewardHelpfulVote = onRewardHelpfulPostBonus,
+                                        onReportContent = onReportContent
+                                    )
+                                }
+
+                                if (safetySection == "LEADERBOARD") {
+                                    AchievementGamificationLeaderboardCard(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        userRole = profile.role,
+                                        userAvatarEmoji = avatarEmojiBadge,
+                                        accentColor = parseThemeHex(signUpForm.themeColorHex),
+                                        onEquipBadgeToProfile = onUpdateAvatarBadge,
+                                        onAwardEqualCoinsBonus = { onRewardHelpfulPostBonus() },
+                                        onShareAchievementToWall = { title, body ->
+                                            onCreatePost("Milestone", title, body)
+                                        }
+                                    )
+                                }
                             }
 
                             DashboardTab.MAINTENANCE_SETTINGS -> {
-                                MaintenanceAndCustomizationScreen(
-                                    backgroundTransparency = backgroundTransparency,
-                                    onTransparencyChange = onTransparencyChange,
-                                    currentThemeHex = signUpForm.themeColorHex,
-                                    onThemeColorSelect = onThemeColorSelect,
-                                    currentVisualStyleId = currentVisualStyleId,
-                                    onThemeVisualStyleSelect = onThemeVisualStyleSelect,
-                                    isDarkMode = isDarkMode,
-                                    onToggleDarkMode = { onSetDarkMode(!isDarkMode) },
-                                    userDisplayName = profile.displayName,
-                                    userEmail = userAccountEmail,
-                                    userPhone = userAccountPhone,
-                                    currentLocationName = profile.location,
-                                    onUpdateUserLocation = onLocationChange,
-                                    onUpdateUserEmail = onUpdateUserEmail,
-                                    onUpdateUserPhone = onUpdateUserPhone,
-                                    onSaveSettingsToCloud = onSaveProfileFromForm,
-                                    onNavigateToDashboard = { onSelectTab(DashboardTab.HUB_3D) },
-                                    onNavigateToProfile = { onSelectTab(DashboardTab.THEME_PROFILE) },
-                                    onNavigateToCodeOfConduct = { onSelectTab(DashboardTab.CODE_OF_CONDUCT) }
-                                )
+                                var settingsSection by rememberSaveable { mutableStateOf("ALL") }
 
-                                // Add Resources Hub to Settings tab
-                                FindingResourceHubScreen(
-                                    profile = profile,
-                                    resources = curatedResources,
-                                    searchFilter = universalSearchQuery,
-                                    onOpenResourceUrl = { launchWebUrl(it) },
-                                    onShareResourceToWall = { item ->
-                                        onCreatePost(
-                                            "Resource Guide",
-                                            item.title,
-                                            "${item.subtitle} — Official portal: ${item.url}"
+                                if (!settingsStatusBanner.isNullOrBlank()) {
+                                    Surface(
+                                        color = CyberEmerald.copy(alpha = 0.18f),
+                                        border = BorderStroke(1.2.dp, CyberEmerald),
+                                        shape = RoundedCornerShape(14.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("settings_status_banner")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = null,
+                                                    tint = CyberEmerald,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Text(
+                                                    text = settingsStatusBanner,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                            IconButton(
+                                                onClick = onClearSettingsStatusBanner,
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Dismiss status",
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(
+                                        "ALL" to "🎛️ All Settings",
+                                        "PLATFORM" to "🌐 Platform",
+                                        "COLORS" to "🎨 Colors & Theme",
+                                        "PHONE_WALLET" to "📱 Phone & Wallet",
+                                        "CONDUCT" to "🛡️ Code of Conduct",
+                                        "BLOCKING" to "🚫 Blocking (${blockedUsers.size})",
+                                        "ABOUT_CREATOR" to "ℹ️ About & Creator",
+                                        "DELETE_ACCOUNT" to "⚠️ Delete Account"
+                                    ).forEach { (key, label) ->
+                                        FilterChip(
+                                            selected = settingsSection == key,
+                                            onClick = { settingsSection = key },
+                                            label = {
+                                                Text(
+                                                    text = label,
+                                                    fontWeight = if (settingsSection == key) FontWeight.ExtraBold else FontWeight.Medium
+                                                )
+                                            },
+                                            modifier = Modifier.testTag("settings_link_${key.lowercase()}")
                                         )
-                                        onSelectTab(DashboardTab.HUB_3D)
-                                    },
-                                    onUpdateUserLocationFromGps = onLocationChange,
-                                    onRecordLearnedSignal = onRecordLearnedSignal,
-                                    onActivateStudentAccount = onSwitchPersonaQuick,
-                                    onShareCustomMilestone = { headline, body ->
-                                        onCreatePost("Resource Guide", headline, body)
-                                        onSelectTab(DashboardTab.HUB_3D)
-                                    },
-                                    careerMilestonesState = careerMilestonesState,
-                                    onAddCareerMilestone = onAddCareerMilestone,
-                                    onUpdateCareerMilestoneStatus = onUpdateCareerMilestoneStatus,
-                                    onDeleteCareerMilestone = onDeleteCareerMilestone,
-                                    isBiometricUnlocked = isResourceHubUnlocked,
-                                    onUnlockBiometric = onUnlockResourceHub,
-                                    onLockBiometric = onLockResourceHub
-                                )
-
-                                // Adaptive User-Learning AI Research Bot & AI Tools Suite
-                                com.example.ui.components.AdaptiveUserLearningAiBotAndToolsCard(
-                                    userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                    userRole = signUpForm.role.ifBlank { profile.role },
-                                    userAge = signUpForm.ageText.toLongOrNull() ?: profile.age,
-                                    userLocation = profile.location.ifBlank { signUpForm.location },
-                                    learnedSignals = learnedSignals,
-                                    learnedInterests = learnedInterests,
-                                    learnedLifestyle = learnedLifestyle,
-                                    learnedSchedule = learnedSchedule,
-                                    learnedResearch = learnedResearch,
-                                    aiStudyState = aiStudyState,
-                                    aiFlashcardsState = aiFlashcardsState,
-                                    aiAdaptivePlanState = aiAdaptivePlanState,
-                                    onRecordLearnedSignal = onRecordLearnedSignal,
-                                    onAddCustomLearningSignal = onAddCustomLearningSignal,
-                                    onToggleLearnedInterest = onToggleLearnedInterest,
-                                    onToggleLearnedResearch = onToggleLearnedResearch,
-                                    onAskAiStudyTutor = onAskAiStudyTutor,
-                                    onGenerateStudyFlashcards = onGenerateStudyFlashcards,
-                                    onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
-                                    onShareAiResearchToWall = { headline, body ->
-                                        onCreatePost("Resource Guide", headline, body)
-                                        onSelectTab(DashboardTab.HUB_3D)
                                     }
-                                )
+                                }
 
-                                // Add AI Tools to Settings tab
-                                AiToolsAndSchoolResearchScreen(
-                                    profile = profile,
-                                    learnedSignals = learnedSignals,
-                                    aiStudyState = aiStudyState,
-                                    aiFlashcardsState = aiFlashcardsState,
-                                    aiAdaptivePlanState = aiAdaptivePlanState,
-                                    onAskAiStudyTutor = onAskAiStudyTutor,
-                                    onGenerateStudyFlashcards = onGenerateStudyFlashcards,
-                                    onGenerateAdaptiveLearningPlan = onGenerateAdaptiveLearningPlan,
-                                    onRecordLearnedSignal = onRecordLearnedSignal,
-                                    onShareStudyGuideToWall = { title, body ->
-                                        onCreatePost("Resource Guide", title, body)
-                                        onSelectTab(DashboardTab.HUB_3D)
-                                    }
-                                )
+                                // 1. Platform Options & Switcher
+                                if (settingsSection == "ALL" || settingsSection == "PLATFORM") {
+                                    SettingsPlatformSwitcherCard(
+                                        currentRole = profile.role,
+                                        currentVisualStyleId = currentVisualStyleId,
+                                        currentSearchEngine = preferredSearchEngine,
+                                        currentMusicPlatform = signUpForm.musicPlatform,
+                                        currentLayoutMode = platformLayoutMode,
+                                        notificationsEnabled = platformNotificationsEnabled,
+                                        showMatureLoungeEnabled = showMatureLoungeEnabled,
+                                        onSelectLifeStagePlatform = { stageId, defaultAge, accentHex ->
+                                            onSwitchPersonaQuick(stageId, defaultAge)
+                                            onThemeColorSelect(accentHex)
+                                        },
+                                        onSelectVisualStyle = onThemeVisualStyleSelect,
+                                        onSelectSearchEngine = onSelectSearchEngine,
+                                        onSelectMusicPlatform = { musicPlatform ->
+                                            onMusicChange(signUpForm.musicTrackTitle, musicPlatform)
+                                        },
+                                        onSelectLayoutMode = onSelectPlatformLayoutMode,
+                                        onToggleNotifications = onTogglePlatformNotifications,
+                                        onToggleMatureLounge = onToggleMatureLounge,
+                                        onSavePlatformChanges = onSaveProfileFromForm
+                                    )
+                                }
 
-                                // Code of Conduct Ideas board
-                                CodeOfConductScreen(
-                                    userIdeas = userIdeas,
-                                    aiIdeaFeedbackState = aiIdeaFeedbackState,
-                                    onSubmitUserIdea = onSubmitUserIdea,
-                                    onUpvoteUserIdea = onUpvoteUserIdea,
-                                    onExpandIdeaWithAi = onExpandIdeaWithAi
-                                )
+                                // 2. All Colors, 360° Color Wheel, Transparency & Dark/Light Mode
+                                if (settingsSection == "ALL" || settingsSection == "COLORS") {
+                                    MaintenanceAndCustomizationScreen(
+                                        backgroundTransparency = backgroundTransparency,
+                                        onTransparencyChange = onTransparencyChange,
+                                        currentThemeHex = signUpForm.themeColorHex,
+                                        onThemeColorSelect = onThemeColorSelect,
+                                        currentVisualStyleId = currentVisualStyleId,
+                                        onThemeVisualStyleSelect = onThemeVisualStyleSelect,
+                                        isDarkMode = isDarkMode,
+                                        onToggleDarkMode = { onSetDarkMode(!isDarkMode) },
+                                        userDisplayName = profile.displayName,
+                                        userEmail = userAccountEmail,
+                                        userPhone = userAccountPhone,
+                                        currentLocationName = profile.location,
+                                        onUpdateUserLocation = onLocationChange,
+                                        onUpdateUserEmail = onUpdateUserEmail,
+                                        onUpdateUserPhone = onUpdateUserPhone,
+                                        onSaveSettingsToCloud = onSaveProfileFromForm,
+                                        onNavigateToDashboard = { onSelectTab(DashboardTab.HUB_3D) },
+                                        onNavigateToProfile = { onSelectTab(DashboardTab.THEME_PROFILE) },
+                                        onNavigateToCodeOfConduct = { onSelectTab(DashboardTab.CODE_OF_CONDUCT) },
+                                        exportPayload = null,
+                                        forcedSectionLink = MaintenanceSectionLink.SETTING_CUSTOMIZATION,
+                                        showHeaderAndPullUp = false
+                                    )
+
+                                    SystemWideDarkModeControlCard(
+                                        isDarkMode = isDarkMode,
+                                        onSetDarkMode = onSetDarkMode,
+                                        backgroundTransparency = backgroundTransparency,
+                                        onTransparencyChange = onTransparencyChange,
+                                        currentThemeHex = signUpForm.themeColorHex,
+                                        onSelectThemeColor = onThemeColorSelect
+                                    )
+                                }
+
+                                // 3. Phone & OS Sync + Digital Wallet Setup
+                                if (settingsSection == "ALL" || settingsSection == "PHONE_WALLET") {
+                                    MaintenanceAndCustomizationScreen(
+                                        backgroundTransparency = backgroundTransparency,
+                                        onTransparencyChange = onTransparencyChange,
+                                        currentThemeHex = signUpForm.themeColorHex,
+                                        onThemeColorSelect = onThemeColorSelect,
+                                        currentVisualStyleId = currentVisualStyleId,
+                                        onThemeVisualStyleSelect = onThemeVisualStyleSelect,
+                                        isDarkMode = isDarkMode,
+                                        onToggleDarkMode = { onSetDarkMode(!isDarkMode) },
+                                        userDisplayName = profile.displayName,
+                                        userEmail = userAccountEmail,
+                                        userPhone = userAccountPhone,
+                                        currentLocationName = profile.location,
+                                        onUpdateUserLocation = onLocationChange,
+                                        onUpdateUserEmail = onUpdateUserEmail,
+                                        onUpdateUserPhone = onUpdateUserPhone,
+                                        onSaveSettingsToCloud = onSaveProfileFromForm,
+                                        onNavigateToDashboard = { onSelectTab(DashboardTab.HUB_3D) },
+                                        onNavigateToProfile = { onSelectTab(DashboardTab.THEME_PROFILE) },
+                                        onNavigateToCodeOfConduct = { onSelectTab(DashboardTab.CODE_OF_CONDUCT) },
+                                        exportPayload = null,
+                                        forcedSectionLink = MaintenanceSectionLink.PHONE_EMAIL_SETTINGS,
+                                        showHeaderAndPullUp = false
+                                    )
+
+                                    SettingsPhoneWalletSetupCard(
+                                        profile = profile,
+                                        virtualCurrencyBalance = virtualCurrencyBalance,
+                                        selectedWalletTier = selectedWalletTier,
+                                        isVaultUnlocked = isFinancialVaultUnlocked,
+                                        onSelectWalletTier = onSelectWalletTier,
+                                        onUpdateSavingsGoal = onUpdateSavingsGoal,
+                                        onQuickWalletDeposit = onAddBudgetItem,
+                                        onUnlockVault = onUnlockFinancialVault,
+                                        onLockVault = onLockFinancialVault,
+                                        onOpenFullWalletTab = { onSelectTab(DashboardTab.FINANCE_GOALS) }
+                                    )
+                                }
+
+                                // 4. Platform Code of Conduct + Download Data (JSON)
+                                if (settingsSection == "ALL" || settingsSection == "CONDUCT") {
+                                    SettingsCodeOfConductCard(
+                                        pledgeAccepted = signUpForm.pledgeAccepted,
+                                        onPledgeChange = { accepted ->
+                                            onPledgeChange(accepted)
+                                            onSaveProfileFromForm()
+                                        },
+                                        onOpenFullCodeOfConductTab = { onSelectTab(DashboardTab.CODE_OF_CONDUCT) }
+                                    )
+
+                                    ProfileDownloadDataCard(exportPayload = exportPayload)
+                                }
+
+                                // 5. Blocking Users
+                                if (settingsSection == "ALL" || settingsSection == "BLOCKING") {
+                                    val friendsList = (friendsState as? UiState.Success)?.data ?: emptyList()
+                                    SettingsBlockUsersCard(
+                                        blockedUsers = blockedUsers,
+                                        friends = friendsList,
+                                        communityConnections = visibleCommunityConnections,
+                                        onBlockUser = onBlockUser,
+                                        onUnblockUser = onUnblockUser
+                                    )
+                                }
+
+                                // 6. About the Platform + Creator of the Platform Contact + Releases
+                                if (settingsSection == "ALL" || settingsSection == "ABOUT_CREATOR") {
+                                    MaintenanceAndCustomizationScreen(
+                                        backgroundTransparency = backgroundTransparency,
+                                        onTransparencyChange = onTransparencyChange,
+                                        currentThemeHex = signUpForm.themeColorHex,
+                                        onThemeColorSelect = onThemeColorSelect,
+                                        currentVisualStyleId = currentVisualStyleId,
+                                        onThemeVisualStyleSelect = onThemeVisualStyleSelect,
+                                        isDarkMode = isDarkMode,
+                                        onToggleDarkMode = { onSetDarkMode(!isDarkMode) },
+                                        userDisplayName = profile.displayName,
+                                        userEmail = userAccountEmail,
+                                        userPhone = userAccountPhone,
+                                        currentLocationName = profile.location,
+                                        onUpdateUserLocation = onLocationChange,
+                                        onUpdateUserEmail = onUpdateUserEmail,
+                                        onUpdateUserPhone = onUpdateUserPhone,
+                                        onSaveSettingsToCloud = onSaveProfileFromForm,
+                                        onNavigateToDashboard = { onSelectTab(DashboardTab.HUB_3D) },
+                                        onNavigateToProfile = { onSelectTab(DashboardTab.THEME_PROFILE) },
+                                        onNavigateToCodeOfConduct = { onSelectTab(DashboardTab.CODE_OF_CONDUCT) },
+                                        exportPayload = null,
+                                        forcedSectionLink = MaintenanceSectionLink.ABOUT_PLATFORM,
+                                        showHeaderAndPullUp = false
+                                    )
+
+                                    MaintenanceAndCustomizationScreen(
+                                        backgroundTransparency = backgroundTransparency,
+                                        onTransparencyChange = onTransparencyChange,
+                                        currentThemeHex = signUpForm.themeColorHex,
+                                        onThemeColorSelect = onThemeColorSelect,
+                                        currentVisualStyleId = currentVisualStyleId,
+                                        onThemeVisualStyleSelect = onThemeVisualStyleSelect,
+                                        isDarkMode = isDarkMode,
+                                        onToggleDarkMode = { onSetDarkMode(!isDarkMode) },
+                                        userDisplayName = profile.displayName,
+                                        userEmail = userAccountEmail,
+                                        userPhone = userAccountPhone,
+                                        currentLocationName = profile.location,
+                                        onUpdateUserLocation = onLocationChange,
+                                        onUpdateUserEmail = onUpdateUserEmail,
+                                        onUpdateUserPhone = onUpdateUserPhone,
+                                        onSaveSettingsToCloud = onSaveProfileFromForm,
+                                        onNavigateToDashboard = { onSelectTab(DashboardTab.HUB_3D) },
+                                        onNavigateToProfile = { onSelectTab(DashboardTab.THEME_PROFILE) },
+                                        onNavigateToCodeOfConduct = { onSelectTab(DashboardTab.CODE_OF_CONDUCT) },
+                                        exportPayload = null,
+                                        forcedSectionLink = MaintenanceSectionLink.CONTACT_US_CREATOR,
+                                        showHeaderAndPullUp = false
+                                    )
+
+                                    PlatformReleaseAndDownloadHubCard(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        onTriggerFullCloudSync = onSaveProfileFromForm
+                                    )
+
+                                    DownloadAndInstallAppCenterCard()
+                                }
+
+                                // 7. Delete Account
+                                if (settingsSection == "ALL" || settingsSection == "DELETE_ACCOUNT") {
+                                    SettingsDeleteAccountCard(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        isDeleting = isDeletingAccount,
+                                        onJumpToDownloadData = { settingsSection = "CONDUCT" },
+                                        onConfirmDeleteAccount = onDeleteAccountPermanently
+                                    )
+                                }
                             }
-                            else -> {}
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
+
+                // Visible Interactive Vertical Scrollbar on every page
+                DashboardVerticalScrollbar(
+                    scrollState = pageScrollState,
+                    accentColor = accentColor,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .padding(end = 4.dp, top = 6.dp, bottom = 6.dp)
+                        .testTag("dashboard_vertical_scrollbar_${tab.name.lowercase()}")
+                )
+
+                // Quick Jump-to-Top Link Button when scrolled down
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = pageScrollState.value > 220,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 12.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = accentColor.copy(alpha = 0.92f),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .clip(RoundedCornerShape(50))
+                            .clickable {
+                                coroutineScope.launch {
+                                    pageScrollState.animateScrollTo(0)
+                                }
+                            }
+                            .testTag("dashboard_scroll_to_top_btn_${tab.name.lowercase()}")
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowUp,
+                                contentDescription = "Scroll back to top",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = "Top",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+                }
+            }
+        }
+    }
+
+    // All-Pages Quick Navigator Bottom Sheet (1-tap jump to any of the 14 platform pages)
+    if (showAllPagesSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showAllPagesSheet = false },
+            sheetState = utilitySheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "All Platform Pages",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "Tap any page below to open it right away",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            showAllPagesSheet = false
+                            showInstallPublishSheet = true
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CyberEmerald,
+                            contentColor = Color.Black
+                        ),
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier.testTag("all_pages_sheet_install_btn")
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Publish / APK", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    pagerTabs.forEach { destTab ->
+                        val isCurrent = destTab == activeTab
+                        val label = when (destTab) {
+                            DashboardTab.HUB_3D -> "🏠 Home"
+                            DashboardTab.STUDIO_ARCADE -> "🎬 Reels & Studio"
+                            DashboardTab.THEME_PROFILE -> "🎨 Profile & 3D"
+                            DashboardTab.FRIENDS -> "👥 Friends"
+                            DashboardTab.MESSAGING -> "💬 Messages"
+                            DashboardTab.VIDEO_CHAT -> "📹 Video Calls"
+                            DashboardTab.FINANCE_GOALS -> "💰 Wallet"
+                            DashboardTab.RESOURCES -> "🎓 School & Aid"
+                            DashboardTab.AI_TOOLS -> "🤖 AI Tools"
+                            DashboardTab.NEWS_SPORTS -> "📰 News & Sports"
+                            DashboardTab.DELIVERY_DRIVING -> "🚗 Delivery"
+                            DashboardTab.STABILITY_LOUNGE -> "🛍️ Market & 18+"
+                            DashboardTab.CODE_OF_CONDUCT -> "🛡️ Safety"
+                            DashboardTab.MAINTENANCE_SETTINGS -> "⚙️ Settings & APK"
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                showAllPagesSheet = false
+                                onSelectTab(destTab)
+                            },
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(
+                                width = if (isCurrent) 2.dp else 1.dp,
+                                color = if (isCurrent) HoloCyan else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("all_pages_sheet_link_${destTab.name.lowercase()}")
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = if (isCurrent) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                color = if (isCurrent) HoloCyan else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+
+    // Dedicated Publish, Download & Install Modal Sheet (accessible in 1 tap from any page)
+    if (showInstallPublishSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showInstallPublishSheet = false },
+            sheetState = utilitySheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                PlatformReleaseAndDownloadHubCard(
+                    userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                    onTriggerFullCloudSync = onSaveProfileFromForm
+                )
+                DownloadAndInstallAppCenterCard()
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -1367,7 +2443,9 @@ private fun ThreeDProfileAndFeedTab(
     var postContent by remember { mutableStateOf("") }
     var postCategory by remember { mutableStateOf("Update") }
     var selectedFeeling by remember { mutableStateOf("🌟 Feeling Inspired") }
-    var hubSubView by remember { mutableStateOf("ALL_6D") }
+    var hubSubView by rememberSaveable { mutableStateOf("DASHBOARD_POST_FEED") }
+    var showInlineComposer by rememberSaveable { mutableStateOf(false) }
+    var showAllWallPosts by rememberSaveable { mutableStateOf(false) }
     var momentumXpBonus by remember { mutableStateOf(0) }
 
     val totalMomentumScore = 600 +
@@ -1394,477 +2472,40 @@ private fun ThreeDProfileAndFeedTab(
         "🤝 Building Community"
     )
 
-    // 0. 6D Non-Stop Momentum & Clean Section Organizer Bar
-    Card(
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(
-            width = 1.5.dp,
-            brush = Brush.horizontalGradient(listOf(HoloCyan, NeonPink, CyberEmerald, SolarAmber))
-        ),
+    // Compact Home Feed & Link Buttons (eliminates endless vertical scroll)
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .sixDimensionalCardEffect(tiltFactor = 1.2f)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SixDimensionalHdBadge(label = "6D NON-STOP")
-                        Text(
-                            text = "⚡ $totalMomentumScore XP Momentum",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = CyberEmerald,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${selectedSportsIds.size} Sports Pinned • ${learnedInterests.size + learnedResearch.size} AI Signals • ${if (isPlayingMusic) "🎵 Playing Live" else "🎵 Jukebox Ready"}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        momentumXpBonus += 50
-                        onRefreshLoginSuggestions()
-                    },
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = HoloCyan,
-                        contentColor = Color.Black
-                    ),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Boost 6D", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold)
-                }
-            }
-
-            // Clean, Simple 3-Button Primary Switcher: Home | My Profile & Dating | Post Feed
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = { hubSubView = "ALL_6D" },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (hubSubView == "ALL_6D") SolarAmber else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (hubSubView == "ALL_6D") Color.Black else MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("switch_to_clean_home_button")
-                ) {
-                    Text("🏠 Clean Home", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold)
-                }
-
-                Button(
-                    onClick = { hubSubView = "MY_PROFILE_PAGE" },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (hubSubView == "MY_PROFILE_PAGE") HoloCyan else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (hubSubView == "MY_PROFILE_PAGE") Color.Black else MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("switch_to_my_profile_page_button")
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("👤 Profile & Dating", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold)
-                }
-
-                Button(
-                    onClick = { hubSubView = "DASHBOARD_POST_FEED" },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (hubSubView == "DASHBOARD_POST_FEED") CyberEmerald else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (hubSubView == "DASHBOARD_POST_FEED") Color.Black else MaterialTheme.colorScheme.onSurface
-                    ),
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("switch_to_dashboard_post_feed_button")
-                ) {
-                    Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(15.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("🌐 Social Feed", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold)
-                }
-            }
-
-            // Simple, Organized Section Directory (Everything in Its Place)
-            Text(
-                text = "Quick Section Jump — Everything in Its Place:",
-                style = MaterialTheme.typography.labelSmall,
-                color = HoloCyan,
-                fontWeight = FontWeight.ExtraBold
+        listOf(
+            "DASHBOARD_POST_FEED" to "🌐 Social Feed",
+            "AI_INSIGHTS" to "✨ AI Insights",
+            "STORIES" to "📖 Stories",
+            "MY_PROFILE_PAGE" to "👤 Quick 3D Profile",
+            "MUSIC_SPORTS" to "🎵 Music & Sports",
+            "AI_MIND" to "🤖 Learning Mind"
+        ).forEach { (key, label) ->
+            FilterChip(
+                selected = hubSubView == key,
+                onClick = { hubSubView = key },
+                label = { Text(label, fontWeight = if (hubSubView == key) FontWeight.ExtraBold else FontWeight.Medium) },
+                modifier = Modifier.testTag("home_feed_subview_${key.lowercase()}")
             )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                listOf(
-                    "ALL_6D" to "🏠 Overview",
-                    "MY_PROFILE_PAGE" to "👤 Profile & Theme",
-                    "ADULT_DATING" to "💘 Adult Dating (18+)",
-                    "WIDGET_HUB" to "🗺️ Maps • Search • YouTube • Code",
-                    "WALLET_MARKET" to "💰 Finance & Summary",
-                    "YOUTUBE_REELS_GAMES" to "▶️ YouTube & Reels",
-                    "STUDENT_CAREERS" to "🎓 School & Careers",
-                    "PHOTO_STUDIO" to "📸 Camera Studio"
-                ).forEach { (key, label) ->
-                    FilterChip(
-                        selected = hubSubView == key,
-                        onClick = {
-                            hubSubView = key
-                            onAdvanceThemeAndColor()
-                        },
-                        label = {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = if (hubSubView == key) FontWeight.ExtraBold else FontWeight.Medium
-                            )
-                        }
-                    )
-                }
-            }
         }
     }
 
-    // 0. Randomized Community Daily Affirmation Widget (Displayed on Dashboard, Post Feed & Profile views)
-    if (hubSubView == "ALL_6D" || hubSubView == "DASHBOARD_POST_FEED" || hubSubView == "MY_PROFILE_PAGE") {
+    if (hubSubView == "AI_INSIGHTS") {
         DailyAffirmationCard(
             userDisplayName = profile.displayName,
             onPinAffirmationToWall = { headline, body ->
                 momentumXpBonus += 35
                 onCreatePost("Daily Affirmation", headline, "$body • #WereEqual #AllEqual")
-            }
-        )
-    }
-
-    // 0.001. Prominent Google Search Widget Card (as requested)
-    if (hubSubView == "ALL_6D" || hubSubView == "WIDGET_HUB") {
-        Card(
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.5.dp, HoloCyan.copy(alpha = 0.6f)),
-            modifier = Modifier
-                .fillMaxWidth()
-                .sixDimensionalCardEffect(tiltFactor = 1.1f)
-                .testTag("google_search_widget_card")
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Using a simple "G" text for Google if icon is unavailable, or a search icon
-                        Text(
-                            text = "G",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = HoloCyan,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Text(
-                        text = "Instant Google Search",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                }
-                
-                var query by remember { mutableStateOf("") }
-                
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    placeholder = { Text("Search for community aid, libraries...") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            if (query.isNotBlank()) {
-                                onExecuteUniversalSearch(query)
-                                momentumXpBonus += 15
-                            }
-                        }
-                    ),
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                if (query.isNotBlank()) {
-                                    onExecuteUniversalSearch(query)
-                                    momentumXpBonus += 15
-                                }
-                            }
-                        ) {
-                            Icon(Icons.Default.Search, contentDescription = "Search", tint = HoloCyan)
-                        }
-                    }
-                )
-                
-                Text(
-                    text = "Perform instant web searches without leaving WereEqual.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-
-    // 0.005. 4-in-1 Quick Widget: Google Maps, Google Search, YouTube & Coding Theme Creation
-    if (
-        hubSubView == "ALL_6D" ||
-        hubSubView == "WIDGET_HUB" ||
-        hubSubView == "MY_PROFILE_PAGE" ||
-        hubSubView == "THEME_3D_STYLE"
-    ) {
-        GoogleMapsSearchYouTubeCodingThemeWidget(
-            currentLocation = profile.location,
-            currentThemeHex = profile.themeColorHex,
-            currentVisualStyleId = currentVisualStyleId,
-            backgroundTransparency = backgroundTransparency,
-            isDarkMode = isDarkMode,
-            onApplyCodedThemeColor = { hex ->
-                momentumXpBonus += 25
-                onThemeColorSelect(hex)
-            },
-            onApplyCodedVisualStyle = { styleId ->
-                momentumXpBonus += 25
-                onThemeVisualStyleSelect(styleId)
-            },
-            onApplyCodedTransparency = onTransparencyChange,
-            onSetDarkMode = onSetDarkMode,
-            onShareToWall = { headline, body ->
-                momentumXpBonus += 35
-                onCreatePost("Update", headline, body)
-            }
-        )
-    }
-
-    // 0.008. Adult Profile Dating & Matchmaking Hub (On Adult Profile, Dating Filter & Overview)
-    if (
-        hubSubView == "ALL_6D" ||
-        hubSubView == "MY_PROFILE_PAGE" ||
-        hubSubView == "ADULT_DATING"
-    ) {
-        AdultProfileDatingHubCard(
-            userDisplayName = profile.displayName,
-            userAge = profile.age,
-            userRole = profile.role,
-            userLocation = profile.location,
-            onSwitchToAdultProfile = {
-                momentumXpBonus += 35
-                onSwitchPersonaQuick("adult", 26L)
-            },
-            onStartVideoDateCall = {
-                onSelectDashboardTab(DashboardTab.VIDEO_CHAT)
-            },
-            onOpenMessagingWithMatch = {
-                onSelectDashboardTab(DashboardTab.MESSAGING)
-            },
-            onShareMatchMilestoneToWall = { headline, body ->
-                momentumXpBonus += 40
-                onCreatePost("Milestone", headline, body)
-            }
-        )
-    }
-
-    // 0.009. Monthly Financial Literacy Tracker (Monthly Savings & Expenses Input + Visual Summary Card)
-    if (hubSubView == "ALL_6D" || hubSubView == "WALLET_MARKET") {
-        FinancialLiteracyTrackerCard(
-            budgetState = budgetState,
-            onAddBudgetItem = { title, category, amountDollars ->
-                momentumXpBonus += 35
-                onAddBudgetItem(title, category, amountDollars)
-            },
-            onShareSummaryToWall = { headline, body ->
-                momentumXpBonus += 40
-                onCreatePost("Milestone", headline, body)
-            },
-            userRole = profile.role,
-            userAge = profile.age
-        )
-    }
-
-    // 0.01. Download & Install WereEqual App Center (APK / AAB / Pin 3D WEREALLEQUALS Icon to Home Screen & Share)
-    if (hubSubView == "ALL_6D") {
-        DownloadAndInstallAppCenterCard()
-    }
-
-    // 0.0. WereEqual Theme Selection, Basic Color Studio & Create Your Own Custom Profile Theme (Accessible on Home, Profile Page & Theme sub-view)
-    if (hubSubView == "ALL_6D" || hubSubView == "MY_PROFILE_PAGE" || hubSubView == "THEME_3D_STYLE") {
-        ThreeDThemeStyleSelectorMenuCard(
-            currentVisualStyleId = currentVisualStyleId,
-            currentThemeHex = profile.themeColorHex,
-            isDarkMode = isDarkMode,
-            onSelectVisualStyle = { styleId ->
-                momentumXpBonus += 30
-                onThemeVisualStyleSelect(styleId)
-            },
-            onSelectThemeColor = { hex ->
-                momentumXpBonus += 20
-                onThemeColorSelect(hex)
-            },
-            onPersistThemeToFirestore = onPersistThemeToFirestore,
-            userDisplayName = profile.displayName,
-            backgroundTransparency = backgroundTransparency,
-            onTransparencyChange = onTransparencyChange,
-            onSetDarkMode = onSetDarkMode,
-            onShareCustomThemeToWall = { headline, body ->
-                momentumXpBonus += 45
-                onCreatePost("Studio Art", headline, body)
-            }
-        )
-    }
-
-    // 0.05. Student Account & School, Jobs & Careers Application Portal (with Firestore Vertical Timeline)
-    if (hubSubView == "ALL_6D" || hubSubView == "STUDENT_CAREERS" || hubSubView == "MY_PROFILE_PAGE") {
-        val localCtx = LocalContext.current
-        StudentSchoolAndCareersPortalCard(
-            currentRole = profile.role,
-            currentAge = profile.age,
-            onSelectStudentAccount = {
-                momentumXpBonus += 40
-                onSwitchPersonaQuick("creator", 18L)
-            },
-            onOpenExternalUrl = { url ->
-                try {
-                    localCtx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                } catch (_: Exception) {
-                }
-            },
-            onOpenAiStudyTutor = {
-                onSelectDashboardTab(DashboardTab.AI_TOOLS)
-            },
-            onShareApplicationGoalToWall = { headline, body ->
-                momentumXpBonus += 35
-                onCreatePost("Resource Guide", headline, body)
-            },
-            careerMilestonesState = careerMilestonesState,
-            onAddCareerMilestone = onAddCareerMilestone,
-            onUpdateCareerMilestoneStatus = onUpdateCareerMilestoneStatus,
-            onDeleteCareerMilestone = onDeleteCareerMilestone
-        )
-    }
-
-    // 0.08. Profile YouTube Player, Watch & Make Video Reels Studio & Teen/Kid All-Platform Gaming Hub
-    if (
-        hubSubView == "ALL_6D" ||
-        hubSubView == "MY_PROFILE_PAGE" ||
-        hubSubView == "DASHBOARD_POST_FEED" ||
-        hubSubView == "YOUTUBE_REELS_GAMES"
-    ) {
-        ProfileYouTubeReelsAndGamesHubCard(
-            displayName = profile.displayName,
-            currentRole = profile.role,
-            currentAge = profile.age,
-            onSwitchToTeenOrKidProfile = { role, age ->
-                momentumXpBonus += 45
-                onSwitchPersonaQuick(role, age)
-            },
-            onPublishVideoOrReelToDashboard = { title, body ->
-                momentumXpBonus += 50
-                onCreatePost("Studio Art", title, body)
-            },
-            onLogHubInteraction = { action, detail, category ->
-                momentumXpBonus += 20
-                onLogInteraction(action, detail, category)
-            },
-            onOpenFullDashboardFeed = {
                 hubSubView = "DASHBOARD_POST_FEED"
             }
         )
-    }
 
-    // 0.1. WereEqual Digital Wallet & Vault
-    if (hubSubView == "ALL_6D" || hubSubView == "WALLET_MARKET") {
-        DigitalWalletCard(
-            profile = profile,
-            budgetState = budgetState,
-            onAddWalletTransaction = { title, category, amountDollars ->
-                momentumXpBonus += 35
-                onAddBudgetItem(title, category, amountDollars)
-                onLogInteraction("FinanceUpdate", "$category: $title ($${amountDollars.toInt()})", "Financial")
-            },
-            onOpenFullFinanceScreen = {
-                onSelectDashboardTab(DashboardTab.FINANCE_GOALS)
-            }
-        )
-
-        // 0.2. WereEqual Marketplace & Business / Content Ads Board
-        CommunityMarketplaceCard(
-            userDisplayName = profile.displayName,
-            userRole = profile.role,
-            onPayWithDigitalWallet = { title, category, amountDollars ->
-                momentumXpBonus += 40
-                onAddBudgetItem(title, category, amountDollars)
-                onLogInteraction("FeatureVisit", "Marketplace: $title", "Community")
-            },
-            onShareListingToWall = { headline, body ->
-                momentumXpBonus += 30
-                onCreatePost("Marketplace Ad", headline, body)
-            }
-        )
-    }
-
-    // 0.3. Creative Photo Studio (Device Camera Capture + Persona Color Grades & Overlays + Profile Photo Updater + Social Post Publisher)
-    if (hubSubView == "ALL_6D" || hubSubView == "PHOTO_STUDIO") {
-        CreativePhotoStudioCard(
-            displayName = profile.displayName,
-            currentProfileBitmap = customProfileBitmap,
-            selected3DAvatarResId = selected3DAvatarResId,
-            userPersona = profile.role.ifBlank { "Adult" },
-            onApplyFilteredBitmapToProfile = { bmp ->
-                momentumXpBonus += 35
-                onUpdateProfileBitmap(bmp)
-            },
-            onPublishPhotoToSocialPost = { title, caption, category ->
-                momentumXpBonus += 50
-                onCreatePost(category, title, caption)
-                onLogInteraction("FeatureVisit", "Published Studio Photo Post: $title", "Photo Studio")
-            },
-            onLogStudioInteraction = { detail ->
-                onLogInteraction("FeatureVisit", detail, "Photo Studio")
-            }
-        )
-    }
-
-    // 0.5. Personalized Insight Module: Firestore User Interactions + Gemini Daily Engagement-Driving Suggestions
-    if (hubSubView == "ALL_6D") {
         PersonalizedInsightModuleCard(
             displayName = profile.displayName.substringBefore(" "),
             interactionsState = userInteractionsState,
@@ -1886,25 +2527,8 @@ private fun ThreeDProfileAndFeedTab(
         )
     }
 
-    // 0.6. Recharts Personal Growth Dashboard (Activity, Mood Trends & Financial Literacy Over Time)
-    if (hubSubView == "GROWTH_RECHARTS") {
-        PersonalGrowthRechartsDashboard(
-            profile = profile,
-            interactionsState = userInteractionsState,
-            budgetState = budgetState,
-            postsState = postsState,
-            onLogInteraction = { actionType, detail, category ->
-                momentumXpBonus += 30
-                onLogInteraction(actionType, detail, category)
-            },
-            onAddBudgetItem = onAddBudgetItem,
-            onShareGrowthMilestoneToWall = { title, content ->
-                onCreatePost("Milestone", title, content)
-            }
-        )
-    }
-
-    // 1. Facebook-Life Style Daily Stories & Highlights Reel
+    // 1. Facebook-Life Style Daily Stories & Highlights Reel (shown via Stories link button)
+    if (hubSubView == "STORIES") {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -2003,8 +2627,10 @@ private fun ThreeDProfileAndFeedTab(
             }
         }
     }
+    }
 
     // 2. 3D Profile Card with Material 3 Light/Dark Mode Toggle, Photo Creation Shortcut & All-Platform Music Player
+    if (hubSubView == "MY_PROFILE_PAGE") {
     val profileAccent = parseThemeHex(profile.themeColorHex)
     val profileSecondary = findSecondaryAccentForHex(profile.themeColorHex)
     val activeVisualStyleTitle = THREE_D_THEME_VISUAL_STYLES.firstOrNull {
@@ -2611,9 +3237,10 @@ private fun ThreeDProfileAndFeedTab(
             }
         }
     }
+    }
 
-    // 2B. Every-Login Personalized Suggestions & Quick Link to Daily News & Sports Hub
-    if (hubSubView == "WALL_BRIEFING") {
+    // 2B. Every-Login Personalized Suggestions (shown in Quick Profile or Social Feed)
+    if (hubSubView == "MY_PROFILE_PAGE") {
         EveryLoginSuggestionsCard(
             displayName = profile.displayName.substringBefore(" "),
             suggestions = everyLoginSuggestions,
@@ -2664,7 +3291,32 @@ private fun ThreeDProfileAndFeedTab(
         )
     }
 
-    // 3. Facebook-Life Vibe Status, Life Event & Resource Post Composer
+    // 3. Compact Status Composer Toggle Link Button & 4. Wall Posts Stream
+    if (hubSubView == "DASHBOARD_POST_FEED") {
+        OutlinedButton(
+            onClick = { showInlineComposer = !showInlineComposer },
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, HoloCyan.copy(alpha = 0.6f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .minimumInteractiveComponentSize()
+                .testTag("toggle_inline_composer_button")
+        ) {
+            Icon(
+                imageVector = if (showInlineComposer) Icons.Default.KeyboardArrowUp else Icons.Default.EmojiEmotions,
+                contentDescription = if (showInlineComposer) "Collapse composer" else "Write a community post",
+                tint = SolarAmber,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = if (showInlineComposer) "Hide Post Composer" else "✍️ Share a Status Update or Life Event...",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (showInlineComposer) {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -2686,7 +3338,7 @@ private fun ThreeDProfileAndFeedTab(
                     tint = SolarAmber
                 )
                 Text(
-                    text = "What's on your mind, ${profile.displayName.substringBefore(" ")}? (Facebook Life Vibe)",
+                    text = "What's on your mind, ${profile.displayName.substringBefore(" ")}?",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -2724,7 +3376,7 @@ private fun ThreeDProfileAndFeedTab(
             OutlinedTextField(
                 value = postTitle,
                 onValueChange = { postTitle = it },
-                label = { Text("Headline or Life Event (e.g., Graduated STEM Class / FAFSA Tip)") },
+                label = { Text("Headline or Life Event") },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2734,7 +3386,7 @@ private fun ThreeDProfileAndFeedTab(
             OutlinedTextField(
                 value = postContent,
                 onValueChange = { postContent = it },
-                label = { Text("Share life updates, school achievements, or helpful guides…") },
+                label = { Text("Share life updates or helpful guides…") },
                 minLines = 2,
                 maxLines = 4,
                 modifier = Modifier
@@ -2754,6 +3406,7 @@ private fun ThreeDProfileAndFeedTab(
                         onCreatePost(postCategory, headline, body)
                         postTitle = ""
                         postContent = ""
+                        showInlineComposer = false
                     }
                 },
                 shape = RoundedCornerShape(12.dp),
@@ -2767,16 +3420,29 @@ private fun ThreeDProfileAndFeedTab(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Publish to Stages Of Life Community Wall", fontWeight = FontWeight.Bold)
+                Text("Publish to Community Wall", fontWeight = FontWeight.Bold)
             }
         }
     }
+        }
 
     // 4. Wall Posts Stream with Facebook-Life Multi-Reactions
-    Text(
-        text = "Your 3D Facebook-Life Wall & Community Feed",
-        style = MaterialTheme.typography.titleLarge
-    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Community Wall Feed",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.ExtraBold
+        )
+        Text(
+            text = "${(postsState as? UiState.Success)?.data?.size ?: 0} posts",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 
     when (postsState) {
         is UiState.Loading -> {
@@ -2800,14 +3466,15 @@ private fun ThreeDProfileAndFeedTab(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Text(
-                        text = "No posts yet. Share a life event, status update, or resource guide above!",
+                        text = "No posts yet. Tap 'Share a Status Update' above!",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(18.dp)
                     )
                 }
             } else {
-                postsState.data.forEach { post ->
+                val visiblePosts = if (showAllWallPosts) postsState.data else postsState.data.take(3)
+                visiblePosts.forEach { post ->
                     val cardAccent = parseThemeHex(post.accentHex)
                     Card(
                         shape = RoundedCornerShape(18.dp),
@@ -2941,8 +3608,24 @@ private fun ThreeDProfileAndFeedTab(
                         }
                     }
                 }
+                if (postsState.data.size > 3) {
+                    OutlinedButton(
+                        onClick = { showAllWallPosts = !showAllWallPosts },
+                        shape = RoundedCornerShape(50),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .minimumInteractiveComponentSize()
+                            .testTag("show_all_wall_posts_button")
+                    ) {
+                        Text(
+                            text = if (showAllWallPosts) "Show Fewer Posts" else "View All ${postsState.data.size} Community Posts",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
+    }
     }
 }
 
@@ -2956,23 +3639,12 @@ private fun StabilityAndLoungeTab(
     connections: List<CommunityConnectionCard>,
     onLogInteraction: (String, String, String) -> Unit = { _, _, _ -> },
     onAddBudgetItem: (String, String, Double) -> Unit,
-    onDeleteBudgetItem: (String) -> Unit,
-    onUpdateSavingsGoal: (Double) -> Unit,
     onShareMilestoneToWall: (String, String) -> Unit,
-    onShareConnectionGreeting: (CommunityConnectionCard) -> Unit,
-    isFinancialVaultUnlocked: Boolean = false,
-    onUnlockFinancialVault: () -> Unit = {},
-    onLockFinancialVault: () -> Unit = {}
+    onShareConnectionGreeting: (CommunityConnectionCard) -> Unit
 ) {
     val isAdult = profile.age >= 18L
 
-    // 0.0. Wondering World Digital Wallet & Community Marketplace / Business Ads
-    DigitalWalletCard(
-        profile = profile,
-        budgetState = budgetState,
-        onAddWalletTransaction = onAddBudgetItem
-    )
-
+    // Community Marketplace & Business Listings
     CommunityMarketplaceCard(
         userDisplayName = profile.displayName,
         userRole = profile.role,
@@ -2980,7 +3652,7 @@ private fun StabilityAndLoungeTab(
         onShareListingToWall = onShareMilestoneToWall
     )
 
-    // 0. Personal Growth Recharts Dashboard (Activity, Mood Trends & Financial Literacy Over Time)
+    // Personal Growth Analytics Dashboard (Activity, Mood Trends & Financial Literacy Over Time)
     PersonalGrowthRechartsDashboard(
         profile = profile,
         interactionsState = interactionsState,
@@ -2991,32 +3663,7 @@ private fun StabilityAndLoungeTab(
         onShareGrowthMilestoneToWall = onShareMilestoneToWall
     )
 
-    // 0.5. Firestore-Synced Personal Finance Goals & Visual Savings Milestone Progress Bars Screen
-    PersonalFinanceGoalsScreen(
-        profile = profile,
-        budgetState = budgetState,
-        onAddGoalEntryToFirestore = onAddBudgetItem,
-        onDeleteGoalEntryFromFirestore = onDeleteBudgetItem,
-        onUpdateOverallSavingsGoalInFirestore = onUpdateSavingsGoal,
-        onShareMilestoneToWall = onShareMilestoneToWall,
-        isBiometricUnlocked = isFinancialVaultUnlocked,
-        onBiometricUnlockSuccess = onUnlockFinancialVault,
-        onBiometricLockVault = onLockFinancialVault
-    )
-
-    // 1. Recharts-Style Financial Literacy Dashboard Screen
-    FinancialLiteracyDashboardScreen(
-        profile = profile,
-        budgetState = budgetState,
-        onAddBudgetItem = onAddBudgetItem,
-        onDeleteBudgetItem = onDeleteBudgetItem,
-        onUpdateSavingsGoal = onUpdateSavingsGoal,
-        isBiometricUnlocked = isFinancialVaultUnlocked,
-        onBiometricUnlockSuccess = onUnlockFinancialVault,
-        onBiometricLockVault = onLockFinancialVault
-    )
-
-    // 2. Wondering World Equal-Match Community & Connections Lounge (Strict 18+ Gate)
+    // Equal-Match Community & Connections Lounge (Strict 18+ Gate)
     Card(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -3179,9 +3826,17 @@ fun DashboardQuickSwipeTabStrip(
     currentPageOffsetFraction: Float,
     activeAccentHex: String,
     onSelectTab: (DashboardTab) -> Unit,
+    onOpenAllPagesMenu: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val activeAccent = parseThemeHex(activeAccentHex)
+    val listState = rememberLazyListState()
+    LaunchedEffect(currentPage) {
+        if (currentPage in pagerTabs.indices) {
+            listState.animateScrollToItem(currentPage)
+        }
+    }
+
     val continuousPosition = (currentPage + currentPageOffsetFraction).coerceIn(
         0f,
         (pagerTabs.size - 1).coerceAtLeast(1).toFloat()
@@ -3210,13 +3865,46 @@ fun DashboardQuickSwipeTabStrip(
             verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                pagerTabs.forEachIndexed { index, tab ->
+                Surface(
+                    color = HoloCyan.copy(alpha = 0.16f),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, HoloCyan),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .clickable { onOpenAllPagesMenu() }
+                        .testTag("quick_strip_all_pages_btn")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Apps,
+                            contentDescription = "All Pages Menu",
+                            tint = HoloCyan,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "Pages",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = HoloCyan,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                }
+
+                LazyRow(
+                    state = listState,
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                itemsIndexed(pagerTabs) { index, tab ->
                     val distance = (continuousPosition - index).absoluteValue.coerceIn(0f, 1f)
                     val isSelected = index == currentPage
                     val pillScale by animateFloatAsState(
@@ -3244,14 +3932,20 @@ fun DashboardQuickSwipeTabStrip(
                     )
 
                     val tabLabel = when (tab) {
-                        DashboardTab.HUB_3D -> "🌐 Dashboard"
+                        DashboardTab.HUB_3D -> "🏠 Home"
+                        DashboardTab.STUDIO_ARCADE -> "🎬 Reels & Studio"
                         DashboardTab.THEME_PROFILE -> "🎨 Profile"
-                        DashboardTab.FRIENDS -> "👥 Community"
+                        DashboardTab.FRIENDS -> "👥 Friends"
                         DashboardTab.MESSAGING -> "💬 Messages"
                         DashboardTab.VIDEO_CHAT -> "📹 Video"
                         DashboardTab.FINANCE_GOALS -> "💰 Wallet"
+                        DashboardTab.RESOURCES -> "🎓 Resources"
+                        DashboardTab.AI_TOOLS -> "🤖 AI Tools"
+                        DashboardTab.NEWS_SPORTS -> "📰 News & Sports"
+                        DashboardTab.DELIVERY_DRIVING -> "🚗 Delivery"
+                        DashboardTab.STABILITY_LOUNGE -> "🛍️ Market & 18+"
+                        DashboardTab.CODE_OF_CONDUCT -> "🛡️ Safety"
                         DashboardTab.MAINTENANCE_SETTINGS -> "⚙️ Settings"
-                        else -> tab.name
                     }
 
                     Surface(
@@ -3280,6 +3974,7 @@ fun DashboardQuickSwipeTabStrip(
                     }
                 }
             }
+            }
 
             // Fluid Animated Horizontal Slide Progress Indicator
             Box(
@@ -3304,4 +3999,81 @@ fun DashboardQuickSwipeTabStrip(
         }
     }
 }
+
+/**
+ * Interactive Vertical Scrollbar overlay rendered along the right edge of every dashboard page.
+ * Supports proportional thumb sizing, drag-to-scroll, and tap-to-jump without hardcoded screen sizes.
+ */
+@Composable
+fun DashboardVerticalScrollbar(
+    scrollState: ScrollState,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    if (scrollState.maxValue <= 0) return
+
+    val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
+        modifier = modifier.width(16.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        val trackHeightPx = with(density) { maxHeight.toPx() }.coerceAtLeast(1f)
+        val viewportRatio = (trackHeightPx / (trackHeightPx + scrollState.maxValue.toFloat())).coerceIn(0.12f, 0.72f)
+        val minThumbPx = with(density) { 40.dp.toPx() }
+        val thumbHeightPx = (trackHeightPx * viewportRatio).coerceAtLeast(minThumbPx).coerceAtMost(trackHeightPx)
+        val scrollableTrackPx = (trackHeightPx - thumbHeightPx).coerceAtLeast(1f)
+        val fraction = (scrollState.value.toFloat() / scrollState.maxValue.toFloat()).coerceIn(0f, 1f)
+        val thumbOffsetPx = fraction * scrollableTrackPx
+        val thumbHeightDp = with(density) { thumbHeightPx.toDp() }
+
+        var dragFractionOffset by remember { mutableFloatStateOf(0f) }
+
+        // Background track rail + drag/tap interaction surface
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(14.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f))
+                .pointerInput(scrollState, scrollableTrackPx) {
+                    detectTapGestures { offset ->
+                        val targetFrac = ((offset.y - thumbHeightPx / 2f) / scrollableTrackPx).coerceIn(0f, 1f)
+                        val targetScroll = (targetFrac * scrollState.maxValue).roundToInt()
+                        coroutineScope.launch { scrollState.animateScrollTo(targetScroll) }
+                    }
+                }
+                .pointerInput(scrollState, scrollableTrackPx) {
+                    detectVerticalDragGestures(
+                        onDragStart = {
+                            dragFractionOffset = (scrollState.value.toFloat() / scrollState.maxValue.toFloat()).coerceIn(0f, 1f) * scrollableTrackPx
+                        },
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            dragFractionOffset = (dragFractionOffset + dragAmount).coerceIn(0f, scrollableTrackPx)
+                            val targetScroll = ((dragFractionOffset / scrollableTrackPx) * scrollState.maxValue).roundToInt()
+                            coroutineScope.launch { scrollState.scrollTo(targetScroll) }
+                        }
+                    )
+                },
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(0, thumbOffsetPx.roundToInt()) }
+                    .width(8.dp)
+                    .height(thumbHeightDp)
+                    .clip(RoundedCornerShape(50))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(HoloCyan, accentColor)
+                        )
+                    )
+            )
+        }
+    }
+}
+
+
 

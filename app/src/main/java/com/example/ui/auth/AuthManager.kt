@@ -133,4 +133,40 @@ object AuthManager {
             }
         }
     }
+
+    fun deleteCurrentFirebaseAuthUser(
+        credentialManager: CredentialManager,
+        scope: CoroutineScope,
+        onDeleted: () -> Unit,
+        onRequiresRecentLogin: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        scope.launch {
+            withContext(NonCancellable) {
+                val user = Firebase.auth.currentUser
+                if (user == null) {
+                    onDeleted()
+                    return@withContext
+                }
+                try {
+                    user.delete().await()
+                    try {
+                        credentialManager.clearCredentialState(ClearCredentialStateRequest())
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to clear credential state after delete: ${e.message}")
+                    }
+                    Firebase.auth.signOut()
+                    onDeleted()
+                } catch (e: com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException) {
+                    Log.w(TAG, "Account deletion requires recent login", e)
+                    onRequiresRecentLogin(
+                        "For security, please sign in again with Google once before permanently deleting your Firebase Auth account."
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to delete Firebase Auth user", e)
+                    onError(e.localizedMessage ?: "Failed to delete Firebase Auth account.")
+                }
+            }
+        }
+    }
 }

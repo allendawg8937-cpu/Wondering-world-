@@ -1,0 +1,67 @@
+{
+  "personaId": "veteran",
+  "personaLabel": "Veteran",
+  "headline": "Transition Benefits, Peer Camaraderie & Legacy Mentorship",
+  "summary": "Trusted guidance covering veteran healthcare, education benefits, civilian career translation, and peer support networks.",
+  "advice": [
+    {
+      "id": "vet-adv-1",
+      "title": "Keep Benefits & Service Records Centralized",
+      "guidance": "Maintain verified digital copies of DD-214, healthcare enrollment, and annual benefit review dates in one checklist.",
+      "actionStep": "Confirm your annual VA healthcare and benefit renewal reminders.",
+      "category": "Support"
+    },
+    {
+      "id": "vet-adv-2",
+      "title": "Translate Service Leadership for Civilian Teams",
+      "guidance": "Convert military occupational specialties into measurable logistics, operations, safety, and team-leadership outcomes.",
+      "actionStep": "Highlight two quantifiable mission-readiness results on your profile.",
+      "category": "Career"
+    },
+    {
+      "id": "vet-adv-3",
+      "title": "Stay Connected Through Peer Mentorship",
+      "guidance": "Weekly check-ins with local veteran chapters or mentoring younger students strengthens resilience and purpose.",
+      "actionStep": "Reach out to one peer mentor or community chapter this week.",
+      "category": "Community"
+    }
+  ],
+  "links": [
+    {
+      "id": "vet-lnk-1",
+      "title": "VA.gov Benefits, Healthcare & GI Bill",
+      "description": "Official portal for disability compensation, healthcare, GI Bill education, and VA home loans.",
+      "url": "https://www.va.gov/",
+      "provider": "U.S. Department of Veterans Affairs",
+      "category": "Support",
+      "isExternal": true
+    },
+    {
+      "id": "vet-lnk-2",
+      "title": "Veterans Crisis Line (988 then Press 1)",
+      "description": "Confidential 24/7 support via call, chat, or text for veterans, service members, and families.",
+      "url": "https://www.veteranscrisisline.net/",
+      "provider": "Veterans Crisis Line",
+      "category": "Wellness",
+      "isExternal": true
+    },
+    {
+      "id": "vet-lnk-3",
+      "title": "SBA Veteran Entrepreneur Programs (VBOC)",
+      "description": "Boots to Business training, veteran-owned certification, and capital access.",
+      "url": "https://www.sba.gov/business-guide/grow-your-business/veteran-owned-businesses",
+      "provider": "U.S. SBA",
+      "category": "Career",
+      "isExternal": true
+    },
+    {
+      "id": "vet-lnk-4",
+      "title": "Profile & Community Safety Hub",
+      "description": "Update your mentorship bio and manage peer community controls.",
+      "url": "/profile",
+      "provider": "Wondering World",
+      "category": "Community",
+      "isExternal": false
+    }
+  ]
+}

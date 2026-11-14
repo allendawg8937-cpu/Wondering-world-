@@ -1,0 +1,67 @@
+{
+  "personaId": "student",
+  "personaLabel": "Student",
+  "headline": "Academic Mastery, Scholarships & Campus Budget Control",
+  "summary": "Curated academic study systems, open-access textbooks, aid programs, and early-career launchpads for students.",
+  "advice": [
+    {
+      "id": "stu-adv-1",
+      "title": "Active Recall Over Passive Rereading",
+      "guidance": "Replace long highlighting sessions with 25-minute spaced-repetition quizzes and teach-back summaries.",
+      "actionStep": "Outline three practice questions after your next lecture or study block.",
+      "category": "Education"
+    },
+    {
+      "id": "stu-adv-2",
+      "title": "Map Aid & Semester Cash Flow Early",
+      "guidance": "Track scholarships, grants, and textbook expenses per semester rather than waiting until finals week.",
+      "actionStep": "Add a dedicated semester textbook or tuition buffer to your Finance Goals.",
+      "category": "Finance"
+    },
+    {
+      "id": "stu-adv-3",
+      "title": "Turn Class Projects Into Career Proof",
+      "guidance": "Document outcomes, code repositories, or research abstracts while coursework is fresh so internships become easier to win.",
+      "actionStep": "Update your profile bio with one measurable project milestone.",
+      "category": "Career"
+    }
+  ],
+  "links": [
+    {
+      "id": "stu-lnk-1",
+      "title": "OpenStax Free Peer-Reviewed Textbooks",
+      "description": "Free high-quality college and AP textbooks across STEM, business, and humanities.",
+      "url": "https://openstax.org/",
+      "provider": "Rice University OpenStax",
+      "category": "Education",
+      "isExternal": true
+    },
+    {
+      "id": "stu-lnk-2",
+      "title": "Federal Student Aid (FAFSA)",
+      "description": "Official U.S. grants, scholarships, work-study programs, and loan planning tools.",
+      "url": "https://studentaid.gov/",
+      "provider": "U.S. Department of Education",
+      "category": "Finance",
+      "isExternal": true
+    },
+    {
+      "id": "stu-lnk-3",
+      "title": "CareerOneStop Student & Internship Finder",
+      "description": "Apprenticeships, resume guides, and regional career pathway explorers.",
+      "url": "https://www.careeronestop.org/",
+      "provider": "U.S. Department of Labor",
+      "category": "Career",
+      "isExternal": true
+    },
+    {
+      "id": "stu-lnk-4",
+      "title": "Semester Budget Planner",
+      "description": "Track tuition, housing, and textbook savings milestones.",
+      "url": "/finance/goals",
+      "provider": "Wondering World",
+      "category": "Finance",
+      "isExternal": false
+    }
+  ]
+}

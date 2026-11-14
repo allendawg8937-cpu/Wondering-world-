@@ -38,6 +38,20 @@ export const routes: Routes = [
             m => m.GoalsPageComponent
           ),
       },
+      {
+        path: 'resources',
+        loadComponent: () =>
+          import('./features/community/community-resources-page.component').then(
+            m => m.CommunityResourcesPageComponent
+          ),
+      },
+      {
+        path: 'photo-studio',
+        loadComponent: () =>
+          import('./features/profile/components/photo-studio.component').then(
+            m => m.PhotoStudioComponent
+          ),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

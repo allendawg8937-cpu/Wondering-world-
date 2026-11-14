@@ -1,0 +1,67 @@
+{
+  "personaId": "business",
+  "personaLabel": "Business",
+  "headline": "Founder Operations, Cash-Flow Discipline & Customer Trust",
+  "summary": "Actionable playbooks for founders, independent operators, and team leaders scaling sustainable revenue and compliance.",
+  "advice": [
+    {
+      "id": "biz-adv-1",
+      "title": "Track Cash Conversion Weekly",
+      "guidance": "Monitor accounts receivable aging and fixed burn rate every Friday so growth initiatives stay self-funded.",
+      "actionStep": "Audit upcoming 60-day invoices and set a dedicated tax-reserve target.",
+      "category": "Finance"
+    },
+    {
+      "id": "biz-adv-2",
+      "title": "Turn Customer Feedback Into Proof",
+      "guidance": "Capture short post-delivery case studies with concrete metrics to shorten future sales cycles.",
+      "actionStep": "Request one brief testimonial from a satisfied client this week.",
+      "category": "Career"
+    },
+    {
+      "id": "biz-adv-3",
+      "title": "Document Core SOPs Early",
+      "guidance": "Lightweight repeatable checklists for onboarding, billing, and QA let small teams delegate without losing quality.",
+      "actionStep": "Write a 5-step checklist for your highest-frequency client workflow.",
+      "category": "Community"
+    }
+  ],
+  "links": [
+    {
+      "id": "biz-lnk-1",
+      "title": "U.S. Small Business Administration (SBA)",
+      "description": "Business plan templates, federal contracting guides, and small business funding programs.",
+      "url": "https://www.sba.gov/business-guide",
+      "provider": "U.S. SBA",
+      "category": "Career",
+      "isExternal": true
+    },
+    {
+      "id": "biz-lnk-2",
+      "title": "SCORE Free Small Business Mentoring",
+      "description": "Connect with experienced executive mentors and access live financial templates.",
+      "url": "https://www.score.org/",
+      "provider": "SCORE Foundation",
+      "category": "Community",
+      "isExternal": true
+    },
+    {
+      "id": "biz-lnk-3",
+      "title": "IRS Small Business & Self-Employed Center",
+      "description": "Quarterly estimated tax schedules, EIN tools, and recordkeeping requirements.",
+      "url": "https://www.irs.gov/businesses/small-businesses-self-employed",
+      "provider": "IRS",
+      "category": "Finance",
+      "isExternal": true
+    },
+    {
+      "id": "biz-lnk-4",
+      "title": "Operating Reserve & Capital Goals",
+      "description": "Track company liquidity and expansion milestones directly in Wondering World.",
+      "url": "/finance/goals",
+      "provider": "Wondering World",
+      "category": "Finance",
+      "isExternal": false
+    }
+  ]
+}

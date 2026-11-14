@@ -200,6 +200,20 @@ fun WonderingWorldRoot(appIconLaunchSignal: Int = 0) {
     val unlockedShopItemIds by viewModel.unlockedShopItemIds.collectAsStateWithLifecycle()
     val currencyTransactions by viewModel.currencyTransactions.collectAsStateWithLifecycle()
     val currencyStatusBanner by viewModel.currencyStatusBanner.collectAsStateWithLifecycle()
+    val profile3DConfigs by viewModel.profile3DConfigsState.collectAsStateWithLifecycle()
+    val profile3DSaving by viewModel.profile3DSaving.collectAsStateWithLifecycle()
+    val profile3DStatusBanner by viewModel.profile3DStatusBanner.collectAsStateWithLifecycle()
+    val personaStageDataMap by viewModel.personaStageDataMapState.collectAsStateWithLifecycle()
+    val personaStageSaving by viewModel.personaStageSaving.collectAsStateWithLifecycle()
+    val personaStageStatusBanner by viewModel.personaStageStatusBanner.collectAsStateWithLifecycle()
+    val preferredSearchEngine by viewModel.preferredSearchEngine.collectAsStateWithLifecycle()
+    val platformLayoutMode by viewModel.platformLayoutMode.collectAsStateWithLifecycle()
+    val platformNotificationsEnabled by viewModel.platformNotificationsEnabled.collectAsStateWithLifecycle()
+    val showMatureLoungeEnabled by viewModel.showMatureLoungeEnabled.collectAsStateWithLifecycle()
+    val selectedWalletTier by viewModel.selectedWalletTier.collectAsStateWithLifecycle()
+    val blockedUsers by viewModel.blockedUsersState.collectAsStateWithLifecycle()
+    val settingsStatusBanner by viewModel.settingsStatusBanner.collectAsStateWithLifecycle()
+    val isDeletingAccount by viewModel.isDeletingAccount.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.notificationEvents.collect { fromName: String ->
@@ -285,8 +299,9 @@ fun WonderingWorldRoot(appIconLaunchSignal: Int = 0) {
                     }
                 )
 
-                // System-Wide Material 3 Dark Mode, Late-Night Eye Comfort, Solid Colors & All-Backgrounds Transparency Bar
-                com.example.ui.components.SystemWideDarkModeHeaderBar(
+                // Combined Universal Search Bar + Dark Mode + Color Changes Header across every page
+                val currentWallPosts = (wallPostsState as? UiState.Success)?.data ?: emptyList()
+                com.example.ui.components.UnifiedSearchAndThemeHeaderBar(
                     isDarkMode = isDarkMode,
                     followSystemTheme = followSystemTheme,
                     isLateNightEyeComfort = isLateNightEyeComfort,
@@ -300,12 +315,7 @@ fun WonderingWorldRoot(appIconLaunchSignal: Int = 0) {
                     onSetFollowSystemTheme = { followSystemTheme = it },
                     onSetLateNightEyeComfort = { isLateNightEyeComfort = it },
                     onSetNightDimmerAlpha = { nightDimmerAlpha = it },
-                    onSetUseDynamicColor = { useDynamicColor = it }
-                )
-
-                // Universal Search Bar visible on every page and profile
-                val currentWallPosts = (wallPostsState as? UiState.Success)?.data ?: emptyList()
-                com.example.ui.components.UniversalPlatformSearchBar(
+                    onSetUseDynamicColor = { useDynamicColor = it },
                     currentUserDisplayName = loadedProfile?.displayName ?: signUpForm.displayName,
                     currentUserRole = currentRole,
                     wallPosts = currentWallPosts,
@@ -535,6 +545,16 @@ fun WonderingWorldRoot(appIconLaunchSignal: Int = 0) {
                                 userAccountPhone = userAccountPhone,
                                 onUpdateUserEmail = viewModel::updateUserAccountEmail,
                                 onUpdateUserPhone = viewModel::updateUserAccountPhone,
+                                profile3DConfigs = profile3DConfigs,
+                                isProfile3DSaving = profile3DSaving,
+                                profile3DStatusBanner = profile3DStatusBanner,
+                                isAuthenticatedForCloud = currentUser != null,
+                                onSaveProfile3DConfig = viewModel::saveProfile3DConfig,
+                                onDeleteProfile3DConfig = viewModel::deleteProfile3DConfig,
+                                personaStageDataMap = personaStageDataMap,
+                                isPersonaStageSaving = personaStageSaving,
+                                personaStageStatusBanner = personaStageStatusBanner,
+                                onSavePersonaStageData = viewModel::savePersonaStageData,
                                 friendsState = friendsState,
                                 incomingRequestsState = requestsState,
                                 discoveredUsers = discoveredUsers,
@@ -565,7 +585,29 @@ fun WonderingWorldRoot(appIconLaunchSignal: Int = 0) {
                                 onRewardHelpfulPostBonus = { viewModel.rewardHelpfulPostBonus() },
                                 onClaimBadgeQuest = viewModel::claimCurrencyBadgeQuest,
                                 onPurchaseOrApplyShopItem = viewModel::purchaseOrApplyShopItem,
-                                onTipCommunityUser = viewModel::tipCommunityMember
+                                onTipCommunityUser = viewModel::tipCommunityMember,
+                                preferredSearchEngine = preferredSearchEngine,
+                                onSelectSearchEngine = viewModel::updatePreferredSearchEngine,
+                                platformLayoutMode = platformLayoutMode,
+                                onSelectPlatformLayoutMode = viewModel::updatePlatformLayoutMode,
+                                platformNotificationsEnabled = platformNotificationsEnabled,
+                                onTogglePlatformNotifications = viewModel::setPlatformNotificationsEnabled,
+                                showMatureLoungeEnabled = showMatureLoungeEnabled,
+                                onToggleMatureLounge = viewModel::setShowMatureLoungeEnabled,
+                                selectedWalletTier = selectedWalletTier,
+                                onSelectWalletTier = viewModel::selectWalletTier,
+                                blockedUsers = blockedUsers,
+                                onBlockUser = viewModel::blockCommunityUser,
+                                onUnblockUser = viewModel::unblockCommunityUser,
+                                settingsStatusBanner = settingsStatusBanner,
+                                onClearSettingsStatusBanner = viewModel::clearSettingsStatusBanner,
+                                isDeletingAccount = isDeletingAccount,
+                                onDeleteAccountPermanently = {
+                                    viewModel.deleteUserAccountPermanently(
+                                        credentialManager = credentialManager,
+                                        scope = scope
+                                    )
+                                }
                             )
                         }
 
@@ -591,6 +633,8 @@ fun WonderingWorldRoot(appIconLaunchSignal: Int = 0) {
                                 onAcceptRequest = viewModel::acceptFriendRequest,
                                 onDeclineRequest = viewModel::declineFriendRequest,
                                 onShowReportDialog = { id, type -> reportTargetInfo = id to type },
+                                blockedUsers = blockedUsers,
+                                onBlockUser = viewModel::blockCommunityUser,
                                 onBack = { viewModel.navigateToMainDashboard() }
                             )
                         }

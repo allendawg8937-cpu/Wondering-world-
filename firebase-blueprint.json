@@ -106,6 +106,69 @@
                   }
                 }
               }
+            },
+            "profile_3d_configs": {
+              "description": "User-customized 3D profile avatar configurations (base model, colors, finish, and accessories)",
+              "documents": {
+                "{configId}": {
+                  "fields": {
+                    "userId": "String",
+                    "configName": "String",
+                    "baseModelId": "String",
+                    "baseModelName": "String",
+                    "primaryColorHex": "String",
+                    "secondaryColorHex": "String",
+                    "auraColorHex": "String",
+                    "headgearId": "String",
+                    "eyewearId": "String",
+                    "auraId": "String",
+                    "rigId": "String",
+                    "metallicFinish": "Number",
+                    "scaleFactor": "Number",
+                    "autoRotate": "Boolean",
+                    "turntableYawDeg": "Number",
+                    "isActive": "Boolean",
+                    "createdAt": "Timestamp",
+                    "updatedAt": "Timestamp"
+                  }
+                }
+              }
+            },
+            "persona_stage_data": {
+              "description": "Stage-specific user data, focus goals, metrics, tasks, and notes per life stage (Kid, Teen, Student, Adult, Business, Veteran)",
+              "documents": {
+                "{stageId}": {
+                  "fields": {
+                    "userId": "String",
+                    "stageId": "String",
+                    "stageLabel": "String",
+                    "focusGoal": "String",
+                    "primaryMetricLabel": "String",
+                    "primaryMetricValue": "Number",
+                    "primaryMetricTarget": "Number",
+                    "pinnedTopics": "List<String>",
+                    "completedTaskIds": "List<String>",
+                    "customNote": "String",
+                    "stageScoreOrXp": "Number",
+                    "createdAt": "Timestamp",
+                    "updatedAt": "Timestamp"
+                  }
+                }
+              }
+            },
+            "blocked_users": {
+              "description": "Per-user list of blocked community members for privacy and safety filtering",
+              "documents": {
+                "{blockedUserId}": {
+                  "fields": {
+                    "userId": "String",
+                    "blockedUserId": "String",
+                    "blockedDisplayName": "String",
+                    "reason": "String",
+                    "createdAt": "Timestamp"
+                  }
+                }
+              }
             }
           }
         }
@@ -137,6 +200,23 @@
             "reason": "String",
             "detail": "String",
             "status": "String",
+            "createdAt": "Timestamp"
+          }
+        }
+      }
+    },
+    "video_reel_comments": {
+      "description": "Real-time user comments and interactions on vertical video reels",
+      "documents": {
+        "{commentId}": {
+          "fields": {
+            "reelId": "String",
+            "videoId": "String",
+            "userId": "String",
+            "authorName": "String",
+            "authorRole": "String",
+            "text": "String",
+            "likesCount": "Number",
             "createdAt": "Timestamp"
           }
         }

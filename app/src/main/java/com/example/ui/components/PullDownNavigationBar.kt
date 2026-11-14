@@ -35,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -45,6 +46,7 @@ import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Palette
@@ -190,125 +192,125 @@ private val ALL_PULL_DOWN_PAGES = listOf(
     PullDownPageItem(
         tab = DashboardTab.HUB_3D,
         stepNumber = 1,
-        title = "1. Clean Home & Feed",
-        subtitle = "Maps, Search, YouTube, Coding Theme & Social Wall",
+        title = "1. Home & Feed",
+        subtitle = "Life Stage Setup, Page Links & Social Wall",
         icon = Icons.Default.Public,
         accent = HoloCyan,
         tag = "pull_nav_dashboard_feed"
     ),
     PullDownPageItem(
-        tab = DashboardTab.THEME_PROFILE,
+        tab = DashboardTab.STUDIO_ARCADE,
         stepNumber = 2,
-        title = "2. Profile, Theme & Adult Dating",
-        subtitle = "Custom Themes, Coding Studio & 18+ Dating Hub",
-        icon = Icons.Default.Palette,
+        title = "2. Reels, Photo & Studio",
+        subtitle = "Video Reels, Text-to-Video, Photo Filters & Arcade",
+        icon = Icons.Default.Brush,
         accent = NeonPink,
+        tag = "pull_nav_studio_arcade"
+    ),
+    PullDownPageItem(
+        tab = DashboardTab.THEME_PROFILE,
+        stepNumber = 3,
+        title = "3. Profile & 3D Themes",
+        subtitle = "3D Avatar, Custom Themes & Bio",
+        icon = Icons.Default.Palette,
+        accent = HoloCyan,
         tag = "pull_nav_theme_profile"
     ),
     PullDownPageItem(
+        tab = DashboardTab.FRIENDS,
+        stepNumber = 4,
+        title = "4. Friends & Discovery",
+        subtitle = "Find Friends & Manage Requests",
+        icon = Icons.Default.Group,
+        accent = CyberEmerald,
+        tag = "pull_nav_friends"
+    ),
+    PullDownPageItem(
+        tab = DashboardTab.MESSAGING,
+        stepNumber = 5,
+        title = "5. Messages & Chat",
+        subtitle = "Direct Messages & Match Icebreakers",
+        icon = Icons.AutoMirrored.Filled.Chat,
+        accent = CyberEmerald,
+        tag = "pull_nav_messaging"
+    ),
+    PullDownPageItem(
+        tab = DashboardTab.VIDEO_CHAT,
+        stepNumber = 6,
+        title = "6. Video Chat & Calls",
+        subtitle = "Live Video Rooms & Date Calls",
+        icon = Icons.Default.Videocam,
+        accent = NeonPink,
+        tag = "pull_nav_video_chat"
+    ),
+    PullDownPageItem(
         tab = DashboardTab.FINANCE_GOALS,
-        stepNumber = 3,
-        title = "3. Financial Literacy & Wallet",
-        subtitle = "Monthly Savings/Expenses Summary & Goals",
+        stepNumber = 7,
+        title = "7. Wallet & Finance",
+        subtitle = "Digital Wallet, EqualCoins & Budget Goals",
         icon = Icons.Default.Savings,
         accent = CyberEmerald,
         tag = "pull_nav_finance_goals"
     ),
     PullDownPageItem(
         tab = DashboardTab.RESOURCES,
-        stepNumber = 4,
-        title = "4. School, Jobs & Aid",
+        stepNumber = 8,
+        title = "8. School, Jobs & Aid",
         subtitle = "Apply for School, Careers, 211 & VA Support",
         icon = Icons.Default.School,
-        accent = CyberEmerald,
+        accent = HoloCyan,
         tag = "pull_nav_resource_hub"
     ),
     PullDownPageItem(
-        tab = DashboardTab.STUDIO_ARCADE,
-        stepNumber = 5,
-        title = "5. YouTube, Reels & Arcade",
-        subtitle = "Embedded YouTube, Short Reels & Games",
-        icon = Icons.Default.Brush,
-        accent = HoloCyan,
-        tag = "pull_nav_studio_arcade"
+        tab = DashboardTab.AI_TOOLS,
+        stepNumber = 9,
+        title = "9. AI Tools & Tutor",
+        subtitle = "Study Coach, Flashcards & Gemini Voice",
+        icon = Icons.Default.AutoAwesome,
+        accent = SolarAmber,
+        tag = "pull_nav_ai_tools"
     ),
     PullDownPageItem(
-        tab = DashboardTab.MESSAGING,
-        stepNumber = 6,
-        title = "6. Messaging & Friends",
-        subtitle = "Direct Messages & Match Icebreakers",
-        icon = Icons.Default.Settings,
-        accent = CyberEmerald,
-        tag = "pull_nav_messaging"
-    ),
-    PullDownPageItem(
-        tab = DashboardTab.FRIENDS,
-        stepNumber = 7,
-        title = "7. Friends & Discovery",
-        subtitle = "Find Friends & Manage Requests",
-        icon = Icons.Default.PersonAdd,
-        accent = NeonPink,
-        tag = "pull_nav_friends"
-    ),
-    PullDownPageItem(
-        tab = DashboardTab.VIDEO_CHAT,
-        stepNumber = 8,
-        title = "8. Video Chat & Date Calls",
-        subtitle = "Live Video Rooms & Group Calling",
-        icon = Icons.Default.Videocam,
-        accent = NeonPink,
-        tag = "pull_nav_video_chat"
+        tab = DashboardTab.NEWS_SPORTS,
+        stepNumber = 10,
+        title = "10. News & Sports",
+        subtitle = "Live Scoreboards, Headlines & Horoscopes",
+        icon = Icons.Default.Newspaper,
+        accent = SolarAmber,
+        tag = "pull_nav_news_sports"
     ),
     PullDownPageItem(
         tab = DashboardTab.DELIVERY_DRIVING,
-        stepNumber = 8,
-        title = "8. Rideshare & Delivery",
+        stepNumber = 11,
+        title = "11. Rideshare & Delivery",
         subtitle = "Uber, Lyft, DoorDash & Instacart",
         icon = Icons.Default.DirectionsCar,
         accent = Color(0xFFFF8200),
         tag = "pull_nav_delivery_driving"
     ),
     PullDownPageItem(
-        tab = DashboardTab.NEWS_SPORTS,
-        stepNumber = 9,
-        title = "9. News & Sports",
-        subtitle = "Live Scoreboards & Daily Headlines",
-        icon = Icons.Default.Newspaper,
-        accent = SolarAmber,
-        tag = "pull_nav_news_sports"
-    ),
-    PullDownPageItem(
-        tab = DashboardTab.AI_TOOLS,
-        stepNumber = 10,
-        title = "10. AI Study Tutor",
-        subtitle = "Homework Coach & Study Flashcards",
-        icon = Icons.Default.AutoAwesome,
-        accent = SolarAmber,
-        tag = "pull_nav_ai_tools"
-    ),
-    PullDownPageItem(
         tab = DashboardTab.STABILITY_LOUNGE,
-        stepNumber = 11,
-        title = "11. Market, Growth & 18+ Lounge",
-        subtitle = "Marketplace, Charts & Adult Connections",
+        stepNumber = 12,
+        title = "12. Market, Growth & 18+",
+        subtitle = "Marketplace, Charts, Donations & Adult Lounge",
         icon = Icons.Default.AccountBalanceWallet,
         accent = SolarAmber,
         tag = "pull_nav_finance_hub"
     ),
     PullDownPageItem(
         tab = DashboardTab.CODE_OF_CONDUCT,
-        stepNumber = 12,
-        title = "12. Code of Conduct",
-        subtitle = "Equality Rules & Community Ideas",
+        stepNumber = 13,
+        title = "13. Safety & Community",
+        subtitle = "Code of Conduct, Moderation & Ideas",
         icon = Icons.Default.Gavel,
         accent = RosePulse,
         tag = "pull_nav_code_of_conduct"
     ),
     PullDownPageItem(
         tab = DashboardTab.MAINTENANCE_SETTINGS,
-        stepNumber = 13,
-        title = "13. Maintenance & Settings",
-        subtitle = "Color Wheel, Transparency, Contact Us & Download APK",
+        stepNumber = 14,
+        title = "14. Settings & Downloads",
+        subtitle = "Theme Colors, Contact Us & Download APK",
         icon = Icons.Default.Settings,
         accent = HoloCyan,
         tag = "pull_nav_maintenance_settings"
@@ -346,7 +348,7 @@ fun PullDownNavigationBar(
     var isNavPulledDown by remember { mutableStateOf(false) }
     var isFhdMode by remember { mutableStateOf(true) }
 
-    val orderedTabs = remember { DashboardTab.entries }
+    val orderedTabs = remember { ALL_PULL_DOWN_PAGES.map { it.tab } }
     val currentTabIndex = orderedTabs.indexOf(activeTab).coerceAtLeast(0)
 
     val currentAgeGroup = remember(currentAge, currentRole) {
@@ -370,20 +372,20 @@ fun PullDownNavigationBar(
             AppNavScreen.LOGIN -> "Login Portal"
             AppNavScreen.SIGN_UP -> "Create Account"
             AppNavScreen.MAIN_DASHBOARD -> when (activeTab) {
-                DashboardTab.HUB_3D -> "Home, Wallet & Market"
-                DashboardTab.DELIVERY_DRIVING -> "Rideshare, Delivery & Driving"
-                DashboardTab.MESSAGING -> "Messaging & Chat"
+                DashboardTab.HUB_3D -> "Home & Feed"
+                DashboardTab.STUDIO_ARCADE -> "Reels, Photo & Studio"
+                DashboardTab.THEME_PROFILE -> "Profile & 3D Themes"
                 DashboardTab.FRIENDS -> "Friends & Discovery"
-                DashboardTab.VIDEO_CHAT -> "Video Chat & Live Calling"
+                DashboardTab.MESSAGING -> "Messages & Chat"
+                DashboardTab.VIDEO_CHAT -> "Video Chat & Calls"
+                DashboardTab.FINANCE_GOALS -> "Wallet & Finance"
                 DashboardTab.RESOURCES -> "School, Jobs & Aid"
-                DashboardTab.THEME_PROFILE -> "Stages Of Life Theme Selection"
+                DashboardTab.AI_TOOLS -> "AI Tools & Tutor"
                 DashboardTab.NEWS_SPORTS -> "News & Sports"
-                DashboardTab.AI_TOOLS -> "AI Study Tutor"
-                DashboardTab.STUDIO_ARCADE -> "YouTube & Arcade"
-                DashboardTab.FINANCE_GOALS -> "Digital Wallet & Goals"
-                DashboardTab.STABILITY_LOUNGE -> "Market & Growth"
-                DashboardTab.CODE_OF_CONDUCT -> "Code of Conduct"
-                DashboardTab.MAINTENANCE_SETTINGS -> "Maintenance & Settings"
+                DashboardTab.DELIVERY_DRIVING -> "Rideshare & Delivery"
+                DashboardTab.STABILITY_LOUNGE -> "Market, Growth & 18+"
+                DashboardTab.CODE_OF_CONDUCT -> "Safety & Community"
+                DashboardTab.MAINTENANCE_SETTINGS -> "Settings & Downloads"
             }
             AppNavScreen.FRIENDS_DISCOVERY -> "Find Friends"
         }
