@@ -15,10 +15,129 @@ data class ThreeDAvatarPreset(
     @DrawableRes val drawableResId: Int,
     val tags: List<String>,
     val accentColor: Color,
-    val badgeEmoji: String
+    val badgeEmoji: String,
+    val lifeStageId: String? = null
 )
 
-val THREE_D_AVATAR_PRESETS = listOf(
+data class LifeStageAvatarPreset(
+    val stageId: String,
+    val stageLabel: String,
+    val presetId: String,
+    val characterTitle: String,
+    val tagline: String,
+    val badgeEmoji: String,
+    val defaultAge: Long,
+    val accentHex: String,
+    val accentColor: Color,
+    @DrawableRes val drawableResId: Int,
+    val tags: List<String>
+) {
+    fun toThreeDAvatarPreset(): ThreeDAvatarPreset = ThreeDAvatarPreset(
+        id = presetId,
+        title = "$stageLabel • $characterTitle",
+        subtitle = tagline,
+        drawableResId = drawableResId,
+        tags = tags,
+        accentColor = accentColor,
+        badgeEmoji = badgeEmoji,
+        lifeStageId = stageId
+    )
+}
+
+val LIFE_STAGE_3D_AVATARS: List<LifeStageAvatarPreset> = listOf(
+    LifeStageAvatarPreset(
+        stageId = "kid",
+        stageLabel = "Kid",
+        presetId = "stage_kid",
+        characterTitle = "Starlight Explorer",
+        tagline = "Emerald explorer jacket & glowing holo visor",
+        badgeEmoji = "🚀",
+        defaultAge = 10L,
+        accentHex = "#10B981",
+        accentColor = CyberEmerald,
+        drawableResId = R.drawable.img_stage_avatar_kid,
+        tags = listOf("Energetic & Playful", "Cosmic Explorer", "Pixar 3D Render", "Holo Visor")
+    ),
+    LifeStageAvatarPreset(
+        stageId = "teen",
+        stageLabel = "Teen",
+        presetId = "stage_teen",
+        characterTitle = "Neon Creator",
+        tagline = "Magenta sonic headphones & tech hoodie",
+        badgeEmoji = "🎵",
+        defaultAge = 16L,
+        accentHex = "#EC4899",
+        accentColor = NeonPink,
+        drawableResId = R.drawable.img_stage_avatar_teen,
+        tags = listOf("Energetic & Playful", "Music Producer", "Neon Rim Light", "Glowing Headphones")
+    ),
+    LifeStageAvatarPreset(
+        stageId = "student",
+        stageLabel = "Student",
+        presetId = "stage_student",
+        characterTitle = "Quantum Scholar",
+        tagline = "Indigo AR smart glasses & futuristic varsity crest",
+        badgeEmoji = "🎓",
+        defaultAge = 21L,
+        accentHex = "#6366F1",
+        accentColor = Color(0xFF6366F1),
+        drawableResId = R.drawable.img_stage_avatar_student,
+        tags = listOf("Intellectual & Wise", "STEM Inventor", "Holographic Glow", "AR Smart Glasses")
+    ),
+    LifeStageAvatarPreset(
+        stageId = "adult",
+        stageLabel = "Adult",
+        presetId = "stage_adult",
+        characterTitle = "Horizon Voyager",
+        tagline = "Cyan-trimmed modern blazer & aurora balance",
+        badgeEmoji = "🧭",
+        defaultAge = 30L,
+        accentHex = "#00E5FF",
+        accentColor = HoloCyan,
+        drawableResId = R.drawable.img_stage_avatar_adult,
+        tags = listOf("Adventurous & Bold", "Friendly & Warm", "Pixar 3D Render", "Aurora Horizon")
+    ),
+    LifeStageAvatarPreset(
+        stageId = "business",
+        stageLabel = "Business",
+        presetId = "stage_business",
+        characterTitle = "Apex Founder",
+        tagline = "Tailored midnight suit & golden geometric lapel",
+        badgeEmoji = "💼",
+        defaultAge = 38L,
+        accentHex = "#F59E0B",
+        accentColor = SolarAmber,
+        drawableResId = R.drawable.img_stage_avatar_business,
+        tags = listOf("Intellectual & Wise", "Solar Golden Hour", "Pixar 3D Render", "Solar Gold Crest")
+    ),
+    LifeStageAvatarPreset(
+        stageId = "veteran",
+        stageLabel = "Veteran",
+        presetId = "stage_veteran",
+        characterTitle = "Solar Mentor",
+        tagline = "Heritage flight jacket & antique-gold wisdom crest",
+        badgeEmoji = "🛡️",
+        defaultAge = 64L,
+        accentHex = "#A855F7",
+        accentColor = Color(0xFFA855F7),
+        drawableResId = R.drawable.img_stage_avatar_veteran,
+        tags = listOf("Calm & Zen", "Veteran Mentor", "Solar Gold Crest", "Aurora Horizon")
+    )
+)
+
+fun findLifeStageAvatarForRole(role: String): LifeStageAvatarPreset {
+    val normalized = role.trim().lowercase()
+    return when {
+        normalized.contains("kid") || normalized.contains("child") -> LIFE_STAGE_3D_AVATARS[0]
+        normalized.contains("teen") || normalized.contains("youth") -> LIFE_STAGE_3D_AVATARS[1]
+        normalized.contains("student") || normalized.contains("college") || normalized.contains("scholar") -> LIFE_STAGE_3D_AVATARS[2]
+        normalized.contains("business") || normalized.contains("founder") || normalized.contains("exec") -> LIFE_STAGE_3D_AVATARS[4]
+        normalized.contains("veteran") || normalized.contains("senior") || normalized.contains("mentor") -> LIFE_STAGE_3D_AVATARS[5]
+        else -> LIFE_STAGE_3D_AVATARS[3]
+    }
+}
+
+val THREE_D_AVATAR_PRESETS = LIFE_STAGE_3D_AVATARS.map { it.toThreeDAvatarPreset() } + listOf(
     ThreeDAvatarPreset(
         id = "cyber_astronaut",
         title = "Cosmic 3D Explorer",

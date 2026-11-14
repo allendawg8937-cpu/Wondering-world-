@@ -32,6 +32,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'avatar-3d',
+        loadComponent: () =>
+          import(
+            './features/profile/avatar-3d-customizer/avatar-3d-customizer.component'
+          ).then(m => m.Avatar3dCustomizerComponent),
+      },
+      {
         path: 'finance/goals',
         loadComponent: () =>
           import('./features/finance/goals/goals-page.component').then(

@@ -187,6 +187,7 @@ import com.example.ui.components.DigitalWalletCard
 import com.example.ui.components.EveryLoginSuggestionsCard
 import com.example.ui.components.FinancialLiteracyTrackerCard
 import com.example.ui.components.FinancialTipOfTheDayCard
+import com.example.ui.components.LifeStageAvatarSelectionGridCard
 import com.example.ui.components.Persona3DAvatarSelectionCard
 import com.example.ui.components.PersonaProfileSystemCard
 import com.example.ui.components.PersonaSelectionComponent
@@ -882,6 +883,16 @@ fun MainDashboardScreen(
                                         }
                                     )
 
+                                    LifeStageAvatarSelectionGridCard(
+                                        currentPersonaRole = profile.role,
+                                        selected3DAvatarResId = selected3DAvatarResId,
+                                        onSelect3DAvatarPreset = onSelect3DAvatarPreset,
+                                        onSyncLifeStagePersona = { stageId, defaultAge, accentHex ->
+                                            onSwitchPersonaQuick(stageId, defaultAge)
+                                            onThemeColorSelect(accentHex)
+                                        }
+                                    )
+
                                     DashboardTopWeatherSearchHeader(
                                         locationName = profile.location,
                                         onLocationUpdated = onLocationChange,
@@ -1254,6 +1265,16 @@ fun MainDashboardScreen(
                                 }
 
                                 if (profileSection == "AVATARS") {
+                                    LifeStageAvatarSelectionGridCard(
+                                        currentPersonaRole = profile.role,
+                                        selected3DAvatarResId = selected3DAvatarResId,
+                                        onSelect3DAvatarPreset = onSelect3DAvatarPreset,
+                                        onSyncLifeStagePersona = { stageId, defaultAge, accentHex ->
+                                            onSwitchPersonaQuick(stageId, defaultAge)
+                                            onThemeColorSelect(accentHex)
+                                        }
+                                    )
+
                                     Persona3DAvatarSelectionCard(
                                         currentPersonaRole = profile.role,
                                         selected3DAvatarResId = selected3DAvatarResId,
