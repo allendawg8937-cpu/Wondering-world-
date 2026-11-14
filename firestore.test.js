@@ -642,5 +642,100 @@ test("User Profile Delete: owner can delete own user document, cross-user and un
   await assertSucceeds(aliceDb.collection("users").doc(ALICE_UID).delete());
 });
 
+test("SocialFollow & PostLike & PostComment: validates owner CRUD, immutability, cross-user isolation, and unauth denial", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const unauthDb = testEnv.unauthenticatedContext().firestore();
+  const now = new Date();
+
+  // profilePictureUrl on User profile
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).set({
+      userId: ALICE_UID,
+      displayName: "Alice",
+      role: "adult",
+      age: 28,
+      location: "Austin, TX",
+      bio: "Equal community member",
+      profilePictureUrl: "https://example.com/avatars/alice.png",
+      themeColorHex: "#00E5FF",
+      themeVisualStyle: "HYPERCUBE_6D",
+      isDarkMode: true,
+      musicTrackTitle: "Track",
+      musicPlatform: "Spotify",
+      savingsBalanceCents: 1000,
+      savingsGoalCents: 5000,
+      arcadeHighScore: 0,
+      pledgeAccepted: true,
+      phoneNumber: "555-0100",
+      interests: ["Community"],
+      createdAt: now,
+      updatedAt: now,
+    })
+  );
+
+  // Follow: Alice follows Bob
+  const followRef = aliceDb.collection("users").doc(ALICE_UID).collection("following").doc(BOB_UID);
+  await assertSucceeds(
+    followRef.set({
+      followerId: ALICE_UID,
+      followingId: BOB_UID,
+      followingDisplayName: "Bob",
+      followingRole: "veteran",
+      createdAt: now,
+    })
+  );
+  await assertSucceeds(followRef.get());
+  await assertFails(followRef.update({ followingRole: "admin" }));
+  await assertFails(
+    aliceDb.collection("users").doc(ALICE_UID).collection("following").doc(ALICE_UID).set({
+      followerId: ALICE_UID,
+      followingId: ALICE_UID,
+      followingDisplayName: "Alice",
+      followingRole: "adult",
+      createdAt: now,
+    })
+  );
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("following").doc(BOB_UID).get());
+  await assertFails(unauthDb.collection("users").doc(ALICE_UID).collection("following").doc(BOB_UID).get());
+  await assertSucceeds(followRef.delete());
+
+  // PostLike: Alice likes Bob's post
+  const likeRef = aliceDb.collection("users").doc(ALICE_UID).collection("post_likes").doc("post_99");
+  await assertSucceeds(
+    likeRef.set({
+      likerId: ALICE_UID,
+      postId: "post_99",
+      postOwnerId: BOB_UID,
+      createdAt: now,
+    })
+  );
+  await assertFails(likeRef.update({ postOwnerId: ALICE_UID }));
+  await assertFails(bobDb.collection("users").doc(ALICE_UID).collection("post_likes").doc("post_99").get());
+  await assertFails(unauthDb.collection("users").doc(ALICE_UID).collection("post_likes").doc("post_99").get());
+  await assertSucceeds(likeRef.delete());
+
+  // PostComment: Alice comments, edits text, Bob cannot edit/delete Alice's comment, unauth denied
+  const commentRef = aliceDb.collection("post_comments").doc("comment_1");
+  await assertSucceeds(
+    commentRef.set({
+      postId: "post_99",
+      postOwnerId: BOB_UID,
+      authorId: ALICE_UID,
+      authorName: "Alice",
+      authorRole: "adult",
+      text: "Great milestone!",
+      createdAt: now,
+    })
+  );
+  await assertSucceeds(commentRef.update({ text: "Great milestone, congrats!" }));
+  await assertFails(commentRef.update({ postId: "tampered_post" }));
+  await assertFails(bobDb.collection("post_comments").doc("comment_1").update({ text: "Bob hijack" }));
+  await assertFails(bobDb.collection("post_comments").doc("comment_1").delete());
+  await assertFails(unauthDb.collection("post_comments").doc("comment_1").get());
+  await assertSucceeds(commentRef.delete());
+});
+
+
 
 

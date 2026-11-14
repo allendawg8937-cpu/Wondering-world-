@@ -1959,23 +1959,13 @@ class WonderingWorldViewModel(
             category = "Profile"
         )
         if (uid == null) {
-            _signUpForm.update { it.copy(isSaving = true, statusMessage = null) }
-            viewModelScope.launch {
-                withGlobalNetworkLoading(
-                    title = "Saving WereEqual Profile...",
-                    subtitle = "Syncing ${updatedProfile.displayName}'s profile & theme settings",
-                    category = "Profile Sync"
-                ) {
-                    delay(350L)
-                }
-                _signUpForm.update {
-                    it.copy(
-                        isSaving = false,
-                        statusMessage = "Code of Conduct accepted & Profile saved!"
-                    )
-                }
-                onComplete()
+            _signUpForm.update {
+                it.copy(
+                    isSaving = false,
+                    statusMessage = "Code of Conduct accepted & Profile saved!"
+                )
             }
+            onComplete()
             return
         }
         _signUpForm.update { it.copy(isSaving = true, statusMessage = null) }

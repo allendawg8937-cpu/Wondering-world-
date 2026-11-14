@@ -14,9 +14,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.assertTextContains
+import android.graphics.Bitmap
 import com.example.data.model.buildDefaultPersonaStageData
 import com.example.ui.DashboardTab
+import java.io.ByteArrayOutputStream
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -131,5 +135,110 @@ class PersonaAndUnifiedHeaderTest {
         composeRule.onNodeWithTag("universal_search_result_res_fafsa").performClick()
         composeRule.waitForIdle()
         assertEquals(DashboardTab.RESOURCES, navigatedTab)
+    }
+
+    @Test
+    fun selectDailyPersonaQuote_providesDistinctPersonalizedQuotesForAllSixPersonas() {
+        val personas = listOf("kid", "teen", "student", "adult", "business", "veteran")
+        val selectedQuotes = personas.map { persona ->
+            selectDailyPersonaQuote(personaId = persona, dayOfYear = 120)
+        }
+        assertEquals(6, selectedQuotes.map { it.personaId }.distinct().size)
+        assertEquals(6, selectedQuotes.map { it.quote }.distinct().size)
+        assertNotEquals(
+            selectDailyPersonaQuote("kid", dayOfYear = 120).id,
+            selectDailyPersonaQuote("kid", dayOfYear = 121).id
+        )
+    }
+
+    @Test
+    fun personaDailyQuoteWidget_updatesQuoteAndEncouragementWhenPersonaChanges() {
+        var activeRole by mutableStateOf("kid")
+        var sharedHeadline: String? = null
+
+        composeRule.setContent {
+            MaterialTheme {
+                Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    PersonaDailyQuoteWidget(
+                        currentRole = activeRole,
+                        userDisplayName = "Jordan Vance",
+                        onShareQuoteToWall = { headline, _ -> sharedHeadline = headline }
+                    )
+                }
+            }
+        }
+
+        val expectedKid = selectDailyPersonaQuote("kid")
+        composeRule.onNodeWithTag("persona_daily_quote_widget").assertIsDisplayed()
+        composeRule.onNodeWithTag("persona_quote_stage_badge").assertTextContains("Kid Mode", substring = true)
+        composeRule.onNodeWithTag("persona_quote_text").assertTextContains(expectedKid.quote, substring = true)
+
+        // Switch persona to veteran and verify immediate update
+        activeRole = "veteran"
+        composeRule.waitForIdle()
+        val expectedVeteran = selectDailyPersonaQuote("veteran")
+        composeRule.onNodeWithTag("persona_quote_stage_badge").assertTextContains("Veteran Mode", substring = true)
+        composeRule.onNodeWithTag("persona_quote_text").assertTextContains(expectedVeteran.quote, substring = true)
+        composeRule.onNodeWithTag("persona_quote_encouragement_text").assertTextContains(expectedVeteran.encouragementTip, substring = true)
+
+        // Cycle next quote and verify quote changes within veteran pool
+        composeRule.onNodeWithTag("persona_quote_next_button").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        val nextVeteran = selectDailyPersonaQuote("veteran", offset = 1)
+        composeRule.onNodeWithTag("persona_quote_text").assertTextContains(nextVeteran.quote, substring = true)
+
+        // Bookmark & share to wall
+        composeRule.onNodeWithTag("persona_quote_favorite_button").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("persona_quote_status_banner").assertTextContains("Saved Veteran quote", substring = true)
+
+        composeRule.onNodeWithTag("persona_quote_share_button").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertTrue(sharedHeadline?.contains("Veteran") == true)
+
+        // Verify branded image export bitmap generator
+        val bitmap = renderPersonaQuoteCardBitmap(
+            quote = nextVeteran,
+            activeStage = DashboardLifeStage.VETERAN,
+            userDisplayName = "Jordan Vance"
+        )
+        assertEquals(1080, bitmap.width)
+        assertEquals(1080, bitmap.height)
+        val pngStream = ByteArrayOutputStream()
+        assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, pngStream))
+        assertTrue(pngStream.size() > 0)
+        bitmap.recycle()
+    }
+
+    @Test
+    fun personaDailyQuoteWidget_shareImageButtonExportsBrandedQuoteForActivePersona() {
+        var exportedQuote: PersonaMotivationalQuote? = null
+        var exportedStage: DashboardLifeStage? = null
+
+        composeRule.setContent {
+            MaterialTheme {
+                Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    PersonaDailyQuoteWidget(
+                        currentRole = "business",
+                        userDisplayName = "Jordan Vance",
+                        onExportQuoteImage = { quote, stage ->
+                            exportedQuote = quote
+                            exportedStage = stage
+                        }
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("persona_quote_export_image_button")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(DashboardLifeStage.BUSINESS, exportedStage)
+        assertEquals("business", exportedQuote?.personaId)
+        composeRule.onNodeWithTag("persona_quote_status_banner")
+            .assertTextContains("Exported Business branded quote image!", substring = true)
     }
 }

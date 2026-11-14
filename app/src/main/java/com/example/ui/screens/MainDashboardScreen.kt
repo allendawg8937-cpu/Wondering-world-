@@ -204,6 +204,7 @@ import com.example.data.export.UserDataExportPayload
 import com.example.data.model.PersonaStageData
 import com.example.data.model.buildDefaultPersonaStageData
 import com.example.data.model.normalizePersonaStageId
+import com.example.ui.components.PersonaDailyQuoteWidget
 import com.example.ui.components.PersonaDashboardComponent
 import com.example.ui.components.ProfileDownloadDataCard
 import com.example.ui.components.PublishedVideoReelsStore
@@ -624,34 +625,7 @@ fun MainDashboardScreen(
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 1. Compact Top Dashboard Bar (Search toggle, Install/Publish, Live Time/Weather, Settings, Profile, Sign Out)
-            DashboardTopWeatherSearchHeader(
-                locationName = profile.location,
-                onLocationUpdated = onLocationChange,
-                universalSearchQuery = universalSearchQuery,
-                onSearchQueryChange = { universalSearchQuery = it },
-                selectedSearchEngine = preferredSearchEngine,
-                onSelectSearchEngine = onSelectSearchEngine,
-                onExecuteSearch = { executeUniversalSearch(it) },
-                onNavigateToEditProfile = onNavigateToEditProfile,
-                onOpenPhoneSystemSettings = {
-                    onSelectTab(DashboardTab.MAINTENANCE_SETTINGS)
-                },
-                onSignOut = onSignOut,
-                onNavigateToFriendsDiscovery = {
-                    onSelectTab(DashboardTab.FRIENDS)
-                },
-                onOpenInstallPublishHub = {
-                    showInstallPublishSheet = true
-                },
-                discoveredUsers = visibleDiscoveredUsers,
-                communityConnections = visibleCommunityConnections,
-                onSearchCommunityMembers = onSearchUsers,
-                onSendFriendRequest = onSendFriendRequest,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-            )
-
-            // 1A. Clean Page Navigator Strip + 1-Tap "All Pages" Grid Drawer
+            // 1. Clean Page Navigator Strip + 1-Tap "All Pages" Grid Drawer
             DashboardQuickSwipeTabStrip(
                 pagerTabs = pagerTabs,
                 currentPage = pagerState.currentPage,
@@ -898,6 +872,39 @@ fun MainDashboardScreen(
                                         onSavePersonaStageData = onSavePersonaStageData,
                                         onNavigateToTab = onSelectTab,
                                         onShareToWall = onCreatePost
+                                    )
+
+                                    PersonaDailyQuoteWidget(
+                                        currentRole = profile.role,
+                                        userDisplayName = profile.displayName,
+                                        onShareQuoteToWall = { headline, body ->
+                                            onCreatePost("Daily Motivation", headline, body)
+                                        }
+                                    )
+
+                                    DashboardTopWeatherSearchHeader(
+                                        locationName = profile.location,
+                                        onLocationUpdated = onLocationChange,
+                                        universalSearchQuery = universalSearchQuery,
+                                        onSearchQueryChange = { universalSearchQuery = it },
+                                        selectedSearchEngine = preferredSearchEngine,
+                                        onSelectSearchEngine = onSelectSearchEngine,
+                                        onExecuteSearch = { executeUniversalSearch(it) },
+                                        onNavigateToEditProfile = onNavigateToEditProfile,
+                                        onOpenPhoneSystemSettings = {
+                                            onSelectTab(DashboardTab.MAINTENANCE_SETTINGS)
+                                        },
+                                        onSignOut = onSignOut,
+                                        onNavigateToFriendsDiscovery = {
+                                            onSelectTab(DashboardTab.FRIENDS)
+                                        },
+                                        onOpenInstallPublishHub = {
+                                            showInstallPublishSheet = true
+                                        },
+                                        discoveredUsers = visibleDiscoveredUsers,
+                                        communityConnections = visibleCommunityConnections,
+                                        onSearchCommunityMembers = onSearchUsers,
+                                        onSendFriendRequest = onSendFriendRequest
                                     )
                                 }
 

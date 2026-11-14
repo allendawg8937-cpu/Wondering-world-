@@ -8,7 +8,10 @@ import com.example.data.model.CareerMilestone
 import com.example.data.model.Friend
 import com.example.data.model.FriendRequest
 import com.example.data.model.PersonaStageData
+import com.example.data.model.PostComment
+import com.example.data.model.PostLike
 import com.example.data.model.Profile3DConfig
+import com.example.data.model.SocialFollow
 import com.example.data.model.UserInteraction
 import com.example.data.model.UserProfile
 import com.example.data.model.WallPost
@@ -108,6 +111,7 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
         val sanitizedAge = profile.age.coerceIn(13L, 120L)
         val sanitizedLocation = profile.location.trim().take(80)
         val sanitizedBio = profile.bio.trim().take(300)
+        val sanitizedAvatarUrl = profile.profilePictureUrl.trim().take(500)
         val sanitizedColor = profile.themeColorHex.trim().ifEmpty { "#6366F1" }.take(9)
         val sanitizedVisualStyle = profile.themeVisualStyle.trim().ifEmpty { "HYPERCUBE_6D" }.take(40)
         val sanitizedDarkMode = profile.isDarkMode
@@ -130,6 +134,7 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
                     "age" to sanitizedAge,
                     "location" to sanitizedLocation,
                     "bio" to sanitizedBio,
+                    "profilePictureUrl" to sanitizedAvatarUrl,
                     "themeColorHex" to sanitizedColor,
                     "themeVisualStyle" to sanitizedVisualStyle,
                     "isDarkMode" to sanitizedDarkMode,
@@ -157,6 +162,7 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
                     "age" to sanitizedAge,
                     "location" to sanitizedLocation,
                     "bio" to sanitizedBio,
+                    "profilePictureUrl" to sanitizedAvatarUrl,
                     "themeColorHex" to sanitizedColor,
                     "themeVisualStyle" to sanitizedVisualStyle,
                     "isDarkMode" to sanitizedDarkMode,
@@ -1105,6 +1111,222 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
         }
     }
 
+    // --- Social Graph: Follow, Post Likes & Post Comments ---
+
+    fun observeFollowing(userId: String): Flow<List<SocialFollow>> = flow {
+        val path = "users/$userId/following"
+        emitAll(
+            db.collection("users").document(userId).collection("following")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        SocialFollow::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedByDescending { it.createdAt ?: Timestamp(0, 0) }
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun followUser(
+        followingId: String,
+        followingDisplayName: String,
+        followingRole: String = "adult"
+    ): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val safeFollowingId = followingId.trim().replace("/", "_").replace("\\", "_").take(100)
+        require(safeFollowingId.isNotBlank()) { "Following user ID cannot be blank" }
+        require(safeFollowingId != uid) { "You cannot follow your own account" }
+        val docRef = db.collection("users").document(uid)
+            .collection("following").document(safeFollowingId)
+        val payload = mapOf(
+            "followerId" to uid,
+            "followingId" to safeFollowingId,
+            "followingDisplayName" to followingDisplayName.trim().ifEmpty { "Community Member" }.take(60),
+            "followingRole" to followingRole.trim().ifEmpty { "adult" }.take(40),
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+        try {
+            if (!docRef.get().await().exists()) {
+                docRef.set(payload).await()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun unfollowUser(followingId: String): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val safeFollowingId = followingId.trim().replace("/", "_").replace("\\", "_").take(100)
+        require(safeFollowingId.isNotBlank()) { "Following user ID cannot be blank" }
+        val docRef = db.collection("users").document(uid)
+            .collection("following").document(safeFollowingId)
+        try {
+            docRef.delete().await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docRef.path)
+            throw e
+        }
+    }
+
+    fun observePostLikes(userId: String): Flow<List<PostLike>> = flow {
+        val path = "users/$userId/post_likes"
+        emitAll(
+            db.collection("users").document(userId).collection("post_likes")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        PostLike::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedByDescending { it.createdAt ?: Timestamp(0, 0) }
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun likePost(postId: String, postOwnerId: String): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val safePostId = postId.trim().replace("/", "_").replace("\\", "_").take(100)
+        val safeOwnerId = postOwnerId.trim().replace("/", "_").replace("\\", "_").take(100)
+        require(safePostId.isNotBlank() && safeOwnerId.isNotBlank()) { "Post ID and owner ID required" }
+        val docRef = db.collection("users").document(uid)
+            .collection("post_likes").document(safePostId)
+        val payload = mapOf(
+            "likerId" to uid,
+            "postId" to safePostId,
+            "postOwnerId" to safeOwnerId,
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+        try {
+            if (!docRef.get().await().exists()) {
+                docRef.set(payload).await()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun unlikePost(postId: String): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val safePostId = postId.trim().replace("/", "_").replace("\\", "_").take(100)
+        require(safePostId.isNotBlank()) { "Post ID cannot be blank" }
+        val docRef = db.collection("users").document(uid)
+            .collection("post_likes").document(safePostId)
+        try {
+            docRef.delete().await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docRef.path)
+            throw e
+        }
+    }
+
+    fun observePostComments(postId: String): Flow<List<PostComment>> = flow {
+        val safePostId = postId.trim().take(100)
+        val path = "post_comments"
+        emitAll(
+            db.collection("post_comments")
+                .whereEqualTo("postId", safePostId)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        PostComment::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedBy { it.createdAt ?: Timestamp(0, 0) }
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser != null) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun addPostComment(
+        postId: String,
+        postOwnerId: String,
+        authorName: String,
+        authorRole: String,
+        text: String
+    ): Result<String> = runCatching {
+        val uid = requireUserId()
+        val safePostId = postId.trim().replace("/", "_").replace("\\", "_").take(100)
+        val safeOwnerId = postOwnerId.trim().replace("/", "_").replace("\\", "_").take(100)
+        val safeText = text.trim().take(600)
+        require(safePostId.isNotBlank() && safeOwnerId.isNotBlank() && safeText.isNotBlank()) {
+            "Post ID, owner ID, and comment text must not be blank"
+        }
+        val docRef = db.collection("post_comments").document()
+        val payload = mapOf(
+            "postId" to safePostId,
+            "postOwnerId" to safeOwnerId,
+            "authorId" to uid,
+            "authorName" to authorName.trim().ifEmpty { "Explorer" }.take(60),
+            "authorRole" to authorRole.trim().ifEmpty { "adult" }.take(40),
+            "text" to safeText,
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+        try {
+            docRef.set(payload).await()
+            docRef.id
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun deletePostComment(commentId: String): Result<Unit> = runCatching {
+        requireUserId()
+        val safeCommentId = commentId.trim().replace("/", "_").replace("\\", "_").take(100)
+        require(safeCommentId.isNotBlank()) { "Comment ID cannot be blank" }
+        val docRef = db.collection("post_comments").document(safeCommentId)
+        try {
+            docRef.delete().await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docRef.path)
+            throw e
+        }
+    }
+
     suspend fun deleteUserAccountData(): Result<Unit> = runCatching {
         val uid = requireUserId()
         val userDocRef = db.collection("users").document(uid)
@@ -1116,7 +1338,9 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
             "profile_3d_configs",
             "persona_stage_data",
             "friends",
-            "blocked_users"
+            "blocked_users",
+            "following",
+            "post_likes"
         )
         try {
             for (subcollectionName in subcollections) {
@@ -1137,6 +1361,18 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
                     .await()
                     .documents
                 userComments.chunked(400).forEach { chunk ->
+                    val batch = db.batch()
+                    chunk.forEach { snap -> batch.delete(snap.reference) }
+                    batch.commit().await()
+                }
+            }
+            runCatching {
+                val postComments = db.collection("post_comments")
+                    .whereEqualTo("authorId", uid)
+                    .get()
+                    .await()
+                    .documents
+                postComments.chunked(400).forEach { chunk ->
                     val batch = db.batch()
                     chunk.forEach { snap -> batch.delete(snap.reference) }
                     batch.commit().await()

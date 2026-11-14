@@ -15,6 +15,7 @@ data class UserProfile(
     val age: Long = 26L,
     val location: String = "",
     val bio: String = "",
+    val profilePictureUrl: String = "",
     val themeColorHex: String = "#6366F1",
     val themeVisualStyle: String = "HYPERCUBE_6D",
     val isDarkMode: Boolean = true,
@@ -65,6 +66,37 @@ data class BlockedUser(
     val blockedUserId: String = "",
     val blockedDisplayName: String = "",
     val reason: String = "Boundary Preference",
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class SocialFollow(
+    @DocumentId val id: String = "",
+    val followerId: String = "",
+    val followingId: String = "",
+    val followingDisplayName: String = "",
+    val followingRole: String = "adult",
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class PostLike(
+    @DocumentId val id: String = "",
+    val likerId: String = "",
+    val postId: String = "",
+    val postOwnerId: String = "",
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class PostComment(
+    @DocumentId val id: String = "",
+    val postId: String = "",
+    val postOwnerId: String = "",
+    val authorId: String = "",
+    val authorName: String = "",
+    val authorRole: String = "adult",
+    val text: String = "",
     @ServerTimestamp val createdAt: Timestamp? = null
 )
 

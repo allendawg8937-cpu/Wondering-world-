@@ -582,12 +582,6 @@ fun PullDownNavigationBar(
                 }
             }
 
-            // EVERY-PAGE LIVE TIME, DATE, WEATHER & LOCATION PERMISSION BAR
-            EveryPageTimeDateWeatherLocationBar(
-                locationName = currentLocationName,
-                onLocationUpdated = onLocationUpdated
-            )
-
             // SINGLE UNIFIED PULL-DOWN DRAWER (Opens when user pulls down or taps the bar)
             AnimatedVisibility(
                 visible = isNavPulledDown,
@@ -616,6 +610,12 @@ fun PullDownNavigationBar(
                             .padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // EVERY-PAGE LIVE TIME, DATE, WEATHER & LOCATION PERMISSION BAR
+                        EveryPageTimeDateWeatherLocationBar(
+                            locationName = currentLocationName,
+                            onLocationUpdated = onLocationUpdated
+                        )
+
                         // System-Wide Material 3 Dark Theme Toggle Card (Synced to Firestore)
                         Surface(
                             color = MaterialTheme.colorScheme.surface,
