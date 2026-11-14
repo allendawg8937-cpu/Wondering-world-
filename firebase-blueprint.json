@@ -11,6 +11,7 @@
             "age": "Number",
             "location": "String",
             "bio": "String",
+            "profilePictureUrl": "String",
             "themeColorHex": "String",
             "themeVisualStyle": "String",
             "isDarkMode": "Boolean",
@@ -169,6 +170,33 @@
                   }
                 }
               }
+            },
+            "following": {
+              "description": "Follow graph edges from the authenticated follower user to followed community members",
+              "documents": {
+                "{followedUserId}": {
+                  "fields": {
+                    "followerId": "String",
+                    "followingId": "String",
+                    "followingDisplayName": "String",
+                    "followingRole": "String",
+                    "createdAt": "Timestamp"
+                  }
+                }
+              }
+            },
+            "post_likes": {
+              "description": "User likes referencing community wall posts",
+              "documents": {
+                "{postId}": {
+                  "fields": {
+                    "likerId": "String",
+                    "postId": "String",
+                    "postOwnerId": "String",
+                    "createdAt": "Timestamp"
+                  }
+                }
+              }
             }
           }
         }
@@ -217,6 +245,22 @@
             "authorRole": "String",
             "text": "String",
             "likesCount": "Number",
+            "createdAt": "Timestamp"
+          }
+        }
+      }
+    },
+    "post_comments": {
+      "description": "Comments authored by users on community wall posts",
+      "documents": {
+        "{commentId}": {
+          "fields": {
+            "postId": "String",
+            "postOwnerId": "String",
+            "authorId": "String",
+            "authorName": "String",
+            "authorRole": "String",
+            "text": "String",
             "createdAt": "Timestamp"
           }
         }

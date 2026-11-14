@@ -6,6 +6,7 @@ import { FinanceService } from '../../data-access/services/finance.service';
 import { PersonaService } from '../../data-access/services/persona.service';
 import { ProfileService } from '../../data-access/services/profile.service';
 import { CommunityResourcesComponent } from '../community/components/community-resources.component';
+import { DailyMotivationalQuoteWidgetComponent } from './components/daily-motivational-quote-widget.component';
 import { PersonaSwitcherComponent } from './components/persona-switcher.component';
 
 @Component({
@@ -16,6 +17,7 @@ import { PersonaSwitcherComponent } from './components/persona-switcher.componen
     NgFor,
     NgIf,
     PersonaSwitcherComponent,
+    DailyMotivationalQuoteWidgetComponent,
     CommunityResourcesComponent,
   ],
   template: `
@@ -33,6 +35,8 @@ import { PersonaSwitcherComponent } from './components/persona-switcher.componen
       </header>
 
       <app-persona-switcher (personaChanged)="onPersonaChanged($event)" />
+
+      <app-daily-motivational-quote-widget />
 
       <app-community-resources />
 

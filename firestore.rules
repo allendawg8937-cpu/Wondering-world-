@@ -28,7 +28,7 @@ service cloud.firestore {
       function isValidUser(data) {
         return data.keys().hasOnly([
             'userId', 'displayName', 'email', 'role', 'age', 'location', 'bio',
-            'themeColorHex', 'themeVisualStyle', 'isDarkMode', 'musicTrackTitle',
+            'profilePictureUrl', 'themeColorHex', 'themeVisualStyle', 'isDarkMode', 'musicTrackTitle',
             'musicPlatform', 'savingsBalanceCents', 'savingsGoalCents', 'arcadeHighScore',
             'pledgeAccepted', 'phoneNumber', 'interests', 'spotifyConnected',
             'spotifyUserId', 'appleMusicConnected', 'appleMusicStorefront',
@@ -41,6 +41,7 @@ service cloud.firestore {
           && data.age is int && data.age >= 13 && data.age <= 120
           && data.location is string && data.location.size() <= 80
           && data.bio is string && data.bio.size() <= 300
+          && (!('profilePictureUrl' in data) || (data.profilePictureUrl is string && data.profilePictureUrl.size() <= 500))
           && data.themeColorHex is string && data.themeColorHex.size() <= 9
           && data.themeVisualStyle is string && data.themeVisualStyle.size() <= 40
           && data.isDarkMode is bool
@@ -255,6 +256,54 @@ service cloud.firestore {
             && data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 100;
         }
       }
+
+      match /following/{followedUserId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(followedUserId)
+          && isValidSocialFollow(request.resource.data, followedUserId)
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.createdAt <= request.time;
+        allow update: if false; // Follow relationships are immutable; unfollow deletes the document
+        allow delete: if isOwner(userId) && isValidId(followedUserId);
+
+        function isValidSocialFollow(data, expectedFollowingId) {
+          return data.keys().hasAll([
+              'followerId', 'followingId', 'followingDisplayName', 'followingRole', 'createdAt'
+            ])
+            && data.keys().hasOnly([
+              'followerId', 'followingId', 'followingDisplayName', 'followingRole', 'createdAt'
+            ])
+            && data.followerId == request.auth.uid
+            && data.followingId == expectedFollowingId
+            && data.followingId != request.auth.uid
+            && data.followingDisplayName is string && data.followingDisplayName.size() >= 1 && data.followingDisplayName.size() <= 60
+            && data.followingRole is string && data.followingRole.size() >= 1 && data.followingRole.size() <= 40;
+        }
+      }
+
+      match /post_likes/{postId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(postId)
+          && isValidPostLike(request.resource.data, postId)
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.createdAt <= request.time;
+        allow update: if false; // Likes are immutable; unlike deletes the document
+        allow delete: if isOwner(userId) && isValidId(postId);
+
+        function isValidPostLike(data, expectedPostId) {
+          return data.keys().hasAll([
+              'likerId', 'postId', 'postOwnerId', 'createdAt'
+            ])
+            && data.keys().hasOnly([
+              'likerId', 'postId', 'postOwnerId', 'createdAt'
+            ])
+            && data.likerId == request.auth.uid
+            && data.postId == expectedPostId
+            && isValidId(data.postOwnerId);
+        }
+      }
     }
 
     // --- Friend Requests Collection ---
@@ -310,6 +359,45 @@ service cloud.firestore {
           && data.text is string && data.text.size() > 0 && data.text.size() <= 600
           && data.likesCount is int && data.likesCount >= 0
           && isValidTimestamp(data.createdAt);
+      }
+    }
+
+    // --- Social Post Comments Collection ---
+    match /post_comments/{commentId} {
+      allow get: if isSignedIn() && isValidId(commentId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(commentId)
+        && request.resource.data.authorId == request.auth.uid
+        && isValidPostComment(request.resource.data)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt <= request.time;
+      allow update: if isSignedIn()
+        && isValidId(commentId)
+        && resource.data.authorId == request.auth.uid
+        && isValidPostComment(request.resource.data)
+        && request.resource.data.authorId == resource.data.authorId
+        && request.resource.data.postId == resource.data.postId
+        && request.resource.data.postOwnerId == resource.data.postOwnerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text']);
+      allow delete: if isSignedIn()
+        && isValidId(commentId)
+        && resource.data.authorId == request.auth.uid;
+
+      function isValidPostComment(data) {
+        return data.keys().hasAll([
+            'postId', 'postOwnerId', 'authorId', 'authorName', 'authorRole', 'text', 'createdAt'
+          ])
+          && data.keys().hasOnly([
+            'postId', 'postOwnerId', 'authorId', 'authorName', 'authorRole', 'text', 'createdAt'
+          ])
+          && isValidId(data.postId)
+          && isValidId(data.postOwnerId)
+          && data.authorId == request.auth.uid
+          && data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60
+          && data.authorRole is string && data.authorRole.size() >= 1 && data.authorRole.size() <= 40
+          && data.text is string && data.text.size() >= 1 && data.text.size() <= 600;
       }
     }
 

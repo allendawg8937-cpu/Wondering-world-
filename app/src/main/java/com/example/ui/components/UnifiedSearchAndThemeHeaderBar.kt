@@ -205,14 +205,14 @@ fun UnifiedSearchAndThemeHeaderBar(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 2.dp)
             .testTag("unified_search_and_theme_header_bar")
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Row 1: Universal Search Input + Inline Dark Mode Switch + Night Care + Theme Options Toggle
             Row(
