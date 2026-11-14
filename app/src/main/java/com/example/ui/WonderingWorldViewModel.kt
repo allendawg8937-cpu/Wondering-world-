@@ -30,6 +30,7 @@ import com.example.ui.components.ThreeDAvatarPreset
 import com.example.ui.components.VirtualCurrencyTransaction
 import com.example.ui.components.buildEveryLoginSuggestions
 import com.example.ui.components.findBestMatching3DAvatarPreset
+import com.example.ui.components.findLifeStageAvatarForRole
 import com.example.ui.theme.EXPANDED_THEME_COLOR_OPTIONS
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
@@ -552,15 +553,15 @@ class WonderingWorldViewModel(
     private val _customProfileBitmap = MutableStateFlow<Bitmap?>(null)
     val customProfileBitmap: StateFlow<Bitmap?> = _customProfileBitmap.asStateFlow()
 
-    private val _selected3DAvatarResId = MutableStateFlow<Int?>(R.drawable.img_avatar_cyber_astronaut)
+    private val _selected3DAvatarResId = MutableStateFlow<Int?>(R.drawable.img_stage_avatar_adult)
     val selected3DAvatarResId: StateFlow<Int?> = _selected3DAvatarResId.asStateFlow()
 
     private val _selectedAvatarTags = MutableStateFlow(
-        setOf("Cosmic Explorer", "Pixar 3D Render", "Holo Visor", "Deep Space Nebula")
+        setOf("Adventurous & Bold", "Friendly & Warm", "Pixar 3D Render", "Aurora Horizon")
     )
     val selectedAvatarTags: StateFlow<Set<String>> = _selectedAvatarTags.asStateFlow()
 
-    private val _avatarEmojiBadge = MutableStateFlow("🚀")
+    private val _avatarEmojiBadge = MutableStateFlow("🧭")
     val avatarEmojiBadge: StateFlow<String> = _avatarEmojiBadge.asStateFlow()
 
     // Adaptive Learning Signals ("platform learns from users": Interests, Lifestyle, Schedule & Research)
@@ -1992,6 +1993,12 @@ class WonderingWorldViewModel(
         _pendingPersonaRoleOverride.value = role to coercedAge
         _signUpForm.update { it.copy(role = role, ageText = coercedAge.toString()) }
         _localProfile.update { it.copy(role = role, age = coercedAge) }
+        if (_customProfileBitmap.value == null) {
+            val stageAvatar = findLifeStageAvatarForRole(role)
+            _selected3DAvatarResId.value = stageAvatar.drawableResId
+            _selectedAvatarTags.value = stageAvatar.tags.toSet()
+            _avatarEmojiBadge.value = stageAvatar.badgeEmoji
+        }
         recordLearnedSignal("Age Group ($coercedAge) • ${role.uppercase()}")
         val uid = _authenticatedUid.value ?: return
         val currentProfile = (userProfileState.value as? UiState.Success)?.data ?: _localProfile.value

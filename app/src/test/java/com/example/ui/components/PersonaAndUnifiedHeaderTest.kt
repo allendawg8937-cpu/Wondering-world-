@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -240,5 +241,80 @@ class PersonaAndUnifiedHeaderTest {
         assertEquals("business", exportedQuote?.personaId)
         composeRule.onNodeWithTag("persona_quote_status_banner")
             .assertTextContains("Exported Business branded quote image!", substring = true)
+    }
+
+    @Test
+    fun lifeStageAvatarCatalog_providesSixDistinctGeneratedDrawablesForAllStages() {
+        assertEquals(6, LIFE_STAGE_3D_AVATARS.size)
+        val stageIds = LIFE_STAGE_3D_AVATARS.map { it.stageId }
+        assertEquals(listOf("kid", "teen", "student", "adult", "business", "veteran"), stageIds)
+        assertEquals(6, LIFE_STAGE_3D_AVATARS.map { it.drawableResId }.distinct().size)
+    }
+
+    @Test
+    fun lifeStageAvatarSelectionGridCard_displaysSixAvatarsAndUpdatesSelection() {
+        var activeRole by mutableStateOf("adult")
+        var selectedResId by mutableStateOf<Int?>(null)
+        var syncedAge by mutableStateOf(30L)
+        var selectedPresetTitle by mutableStateOf<String?>(null)
+
+        composeRule.setContent {
+            MaterialTheme {
+                Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    LifeStageAvatarSelectionGridCard(
+                        currentPersonaRole = activeRole,
+                        selected3DAvatarResId = selectedResId,
+                        onSelect3DAvatarPreset = { preset ->
+                            selectedResId = preset.drawableResId
+                            selectedPresetTitle = preset.title
+                        },
+                        onSyncLifeStagePersona = { stageId, defaultAge, _ ->
+                            activeRole = stageId
+                            syncedAge = defaultAge
+                        }
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("life_stage_avatar_selection_grid").assertIsDisplayed()
+        LIFE_STAGE_3D_AVATARS.forEach { avatar ->
+            composeRule.onNodeWithTag("life_stage_avatar_card_${avatar.stageId}")
+                .performScrollTo()
+                .assertIsDisplayed()
+        }
+
+        // Select Teen avatar card and verify portrait + synced persona update
+        composeRule.onNodeWithTag("life_stage_avatar_card_teen")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("teen", activeRole)
+        assertEquals(16L, syncedAge)
+        assertEquals(LIFE_STAGE_3D_AVATARS[1].drawableResId, selectedResId)
+        assertTrue(selectedPresetTitle?.contains("Teen") == true)
+        composeRule.onNodeWithTag("life_stage_avatar_card_teen").assertIsSelected()
+        composeRule.onNodeWithTag("life_stage_avatar_selected_check_teen", useUnmergedTree = true)
+            .performScrollTo()
+            .assertIsDisplayed()
+
+        // Toggle Sync Stage off and verify clicking Veteran equips avatar without changing role
+        composeRule.onNodeWithTag("life_stage_avatar_sync_toggle")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("life_stage_avatar_card_veteran")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("teen", activeRole)
+        assertEquals(LIFE_STAGE_3D_AVATARS[5].drawableResId, selectedResId)
+        composeRule.onNodeWithTag("life_stage_avatar_card_veteran").assertIsSelected()
+        composeRule.onNodeWithTag("life_stage_avatar_selected_check_veteran", useUnmergedTree = true)
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 }

@@ -15,6 +15,7 @@ import { AuthService } from '../auth/auth.service';
         <nav>
           <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
           <a routerLink="/profile" routerLinkActive="active">Profile</a>
+          <a routerLink="/avatar-3d" routerLinkActive="active">3D Avatar Studio</a>
           <a routerLink="/finance/goals" routerLinkActive="active">Finance Goals</a>
           <button type="button" class="logout-btn" (click)="logout()">
             Logout
