@@ -99,7 +99,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.MainActivity
 import com.example.R
+import com.example.data.export.UserDataExportPayload
 import com.example.ui.components.LocationPermissionControlCard
+import com.example.ui.components.ProfileDownloadDataCard
 import com.example.ui.components.THREE_D_THEME_VISUAL_STYLES
 import com.example.ui.components.ThreeDProfileThemePresetsToggleCard
 import com.example.ui.components.WereAllEquals3DHeroShowcaseBanner
@@ -131,7 +133,12 @@ enum class MaintenanceSectionLink(
     ALL_SECTIONS(
         id = "all",
         title = "All Maintenance & Links",
-        subtitle = "Full view: Download/Install APK, Color Wheel, Transparency, Phone/Email, About & Contact Us"
+        subtitle = "Full view: Download Data (JSON), Download/Install APK, Color Wheel, Transparency, Phone/Email & Contact Us"
+    ),
+    DOWNLOAD_DATA(
+        id = "download_data",
+        title = "Download Data (JSON)",
+        subtitle = "Aggregate financial goals & user preferences into a downloadable JSON file"
     ),
     DOWNLOAD_INSTALL_APP(
         id = "download_install_app",
@@ -685,10 +692,14 @@ fun MaintenanceAndCustomizationScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToCodeOfConduct: () -> Unit,
+    exportPayload: UserDataExportPayload? = null,
+    forcedSectionLink: MaintenanceSectionLink? = null,
+    showHeaderAndPullUp: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var activeSectionLink by remember { mutableStateOf(MaintenanceSectionLink.ALL_SECTIONS) }
+    var internalSectionLink by remember { mutableStateOf(MaintenanceSectionLink.ALL_SECTIONS) }
+    val activeSectionLink = forcedSectionLink ?: internalSectionLink
     var isPullUpBarExpanded by remember { mutableStateOf(true) }
     var statusBanner by remember { mutableStateOf<String?>(null) }
 
@@ -736,7 +747,36 @@ fun MaintenanceAndCustomizationScreen(
             .testTag("maintenance_and_customization_screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (!showHeaderAndPullUp && !statusBanner.isNullOrBlank()) {
+            Surface(
+                color = CyberEmerald.copy(alpha = 0.18f),
+                border = BorderStroke(1.dp, CyberEmerald),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = CyberEmerald,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = statusBanner ?: "",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
         // Top Header Card with Quick Links Bar ("Contact Us", "About the Platform", "Setting Customization", "Phone & Email Settings")
+        if (showHeaderAndPullUp) {
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
@@ -799,7 +839,7 @@ fun MaintenanceAndCustomizationScreen(
                         val isSelected = activeSectionLink == linkItem
                         FilterChip(
                             selected = isSelected,
-                            onClick = { activeSectionLink = linkItem },
+                            onClick = { internalSectionLink = linkItem },
                             label = {
                                 Text(
                                     text = linkItem.title,
@@ -841,8 +881,22 @@ fun MaintenanceAndCustomizationScreen(
                 }
             }
         }
+        }
 
-        // SECTION 0: DOWNLOAD & INSTALL WEREEQUAL APP CENTER (APK / AAB / PIN TO HOME SCREEN / SHARE)
+        // SECTION 0: DOWNLOAD MY DATA (Aggregated Financial Goals & User Preferences JSON)
+        if (exportPayload != null && (
+                activeSectionLink == MaintenanceSectionLink.ALL_SECTIONS ||
+                    activeSectionLink == MaintenanceSectionLink.DOWNLOAD_DATA ||
+                    activeSectionLink == MaintenanceSectionLink.PHONE_EMAIL_SETTINGS
+                )
+        ) {
+            ProfileDownloadDataCard(
+                exportPayload = exportPayload,
+                onStatusMessage = { msg -> statusBanner = msg }
+            )
+        }
+
+        // SECTION 0B: DOWNLOAD & INSTALL STAGES OF LIFE APP CENTER (APK / AAB / PIN TO HOME SCREEN / SHARE)
         if (activeSectionLink == MaintenanceSectionLink.ALL_SECTIONS ||
             activeSectionLink == MaintenanceSectionLink.DOWNLOAD_INSTALL_APP
         ) {
@@ -1547,21 +1601,23 @@ fun MaintenanceAndCustomizationScreen(
         }
 
         // SECTION 5: PULL-UP BAR SO USER CAN CHOOSE WHAT LINK THEY NEED ON THE MAINTENANCE PAGE
-        MaintenancePullUpLinkChooserBar(
-            isExpanded = isPullUpBarExpanded,
-            onToggleExpanded = { isPullUpBarExpanded = !isPullUpBarExpanded },
-            activeSectionLink = activeSectionLink,
-            onSelectSectionLink = { chosenLink ->
-                activeSectionLink = chosenLink
-                statusBanner = "Opened Maintenance Link: ${chosenLink.title}"
-            },
-            onEmailCreator = ::emailPlatformCreator,
-            onCallCreator = ::callPlatformCreator,
-            onMapCreatorAddress = ::mapPlatformCreatorAddress,
-            onOpenPhoneSettings = {
-                launchPhoneSystemSetting(context, Settings.ACTION_SETTINGS)
-            }
-        )
+        if (showHeaderAndPullUp) {
+            MaintenancePullUpLinkChooserBar(
+                isExpanded = isPullUpBarExpanded,
+                onToggleExpanded = { isPullUpBarExpanded = !isPullUpBarExpanded },
+                activeSectionLink = activeSectionLink,
+                onSelectSectionLink = { chosenLink ->
+                    internalSectionLink = chosenLink
+                    statusBanner = "Opened Maintenance Link: ${chosenLink.title}"
+                },
+                onEmailCreator = ::emailPlatformCreator,
+                onCallCreator = ::callPlatformCreator,
+                onMapCreatorAddress = ::mapPlatformCreatorAddress,
+                onOpenPhoneSettings = {
+                    launchPhoneSystemSetting(context, Settings.ACTION_SETTINGS)
+                }
+            )
+        }
     }
 }
 
@@ -1679,6 +1735,7 @@ fun MaintenancePullUpLinkChooserBar(
                     MaintenanceSectionLink.entries.forEach { linkOption ->
                         val selected = activeSectionLink == linkOption
                         val accentColor = when (linkOption) {
+                            MaintenanceSectionLink.DOWNLOAD_DATA -> CyberEmerald
                             MaintenanceSectionLink.DOWNLOAD_INSTALL_APP -> CyberEmerald
                             MaintenanceSectionLink.SETTING_CUSTOMIZATION -> HoloCyan
                             MaintenanceSectionLink.PHONE_EMAIL_SETTINGS -> CyberEmerald
@@ -1810,7 +1867,13 @@ fun DownloadAndInstallAppCenterCard(
     val versionInfo = remember(context) {
         try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            "v${pInfo.versionName ?: "1.0"} (Build ${pInfo.longVersionCode})"
+            val buildCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                pInfo.versionCode.toLong()
+            }
+            "v${pInfo.versionName ?: "1.0"} (Build $buildCode)"
         } catch (_: Exception) {
             "v1.0 (Build 1)"
         }
@@ -1826,25 +1889,25 @@ fun DownloadAndInstallAppCenterCard(
                         addCategory(Intent.CATEGORY_LAUNCHER)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
-                    val pinShortcutInfo = ShortcutInfo.Builder(context, "wereallequals_home_launcher")
-                        .setShortLabel("WereEqual")
-                        .setLongLabel("WereEqual • WEREALLEQUALS 3D")
+                    val pinShortcutInfo = ShortcutInfo.Builder(context, "stages_of_life_home_launcher")
+                        .setShortLabel("Stages Of Life")
+                        .setLongLabel("Stages Of Life • Create Your Life")
                         .setIcon(AndroidIcon.createWithResource(context, R.mipmap.ic_launcher))
                         .setIntent(launchIntent)
                         .build()
 
                     shortcutManager.requestPinShortcut(pinShortcutInfo, null)
-                    val msg = "✓ Requested Android Home Screen shortcut for WereEqual (3D WEREALLEQUALS Icon)!"
+                    val msg = "✓ Requested Android Home Screen shortcut for Stages Of Life!"
                     installStatusText = msg
                     onStatusMessage(msg)
                     return
                 }
             }
-            val msg = "✓ WereEqual ($packageName • $versionInfo) is installed and ready on your device launcher!"
+            val msg = "✓ Stages Of Life ($packageName • $versionInfo) is installed and ready on your device launcher!"
             installStatusText = msg
             onStatusMessage(msg)
         } catch (_: Exception) {
-            val msg = "✓ WereEqual 3D Launcher Icon is active on your device!"
+            val msg = "✓ Stages Of Life 3D Launcher Icon is active on your device!"
             installStatusText = msg
             onStatusMessage(msg)
         }
@@ -1854,18 +1917,18 @@ fun DownloadAndInstallAppCenterCard(
         try {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
-                putExtra(Intent.EXTRA_SUBJECT, "Download & Install WereEqual (WEREALLEQUALS 3D App)")
+                putExtra(Intent.EXTRA_SUBJECT, "Download & Install Stages Of Life")
                 putExtra(
                     Intent.EXTRA_TEXT,
-                    "Download & install the WereEqual (WEREALLEQUALS) 3D Community App! " +
-                        "Live App & APK Link: $SHARED_INSTALLABLE_APP_URL • Created by Allen Grogan ($CREATOR_EMAIL)"
+                    "Download & install Stages Of Life ($versionInfo)! " +
+                        "Live App & Install Link: $SHARED_INSTALLABLE_APP_URL"
                 )
             }
-            val chooser = Intent.createChooser(shareIntent, "Share WereEqual Installable App").apply {
+            val chooser = Intent.createChooser(shareIntent, "Share Stages Of Life Installable App").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(chooser)
-            val msg = "✓ Opened Share Sheet to send the WereEqual install link!"
+            val msg = "✓ Opened Share Sheet to send the Stages Of Life install link!"
             installStatusText = msg
             onStatusMessage(msg)
         } catch (_: Exception) {

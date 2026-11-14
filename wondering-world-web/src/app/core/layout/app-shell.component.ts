@@ -1,6 +1,7 @@
 // src/app/core/layout/app-shell.component.ts
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { PersonaService } from '../../data-access/services/persona.service';
 import { AuthService } from '../auth/auth.service';
 
 @Component({
@@ -12,8 +13,26 @@ import { AuthService } from '../auth/auth.service';
       <aside class="sidebar">
         <h2>Wondering World</h2>
 
+        <div
+          class="active-persona-badge"
+          [style.border-color]="activePersona().accentColor"
+        >
+          <span class="persona-kicker">Active Stage</span>
+          <strong>{{ activePersona().label }}</strong>
+          <small>{{ activePersona().ageRange }}</small>
+          <button
+            type="button"
+            class="quick-cycle-btn"
+            (click)="cyclePersona()"
+          >
+            Switch Stage
+          </button>
+        </div>
+
         <nav>
           <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+          <a routerLink="/resources" routerLinkActive="active">Community Resources</a>
+          <a routerLink="/photo-studio" routerLinkActive="active">Photo Studio</a>
           <a routerLink="/profile" routerLinkActive="active">Profile</a>
           <a routerLink="/finance/goals" routerLinkActive="active">Finance Goals</a>
           <button type="button" class="logout-btn" (click)="logout()">
@@ -50,8 +69,42 @@ import { AuthService } from '../auth/auth.service';
       }
 
       .sidebar h2 {
-        margin: 0 0 24px;
+        margin: 0 0 18px;
         font-size: 1.2rem;
+      }
+
+      .active-persona-badge {
+        margin-bottom: 20px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        display: grid;
+        gap: 4px;
+      }
+
+      .persona-kicker {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+      }
+
+      .active-persona-badge small {
+        color: #94a3b8;
+        font-size: 0.76rem;
+      }
+
+      .quick-cycle-btn {
+        margin-top: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        background: #1e293b;
+        color: #f8fafc;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
       }
 
       nav {
@@ -100,7 +153,14 @@ import { AuthService } from '../auth/auth.service';
 })
 export class AppShellComponent {
   private readonly authService = inject(AuthService);
+  private readonly personaService = inject(PersonaService);
   private readonly router = inject(Router);
+
+  readonly activePersona = this.personaService.activePersona;
+
+  cyclePersona(): void {
+    this.personaService.cycleNextPersona();
+  }
 
   logout(): void {
     this.authService.logout();

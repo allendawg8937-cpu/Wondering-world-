@@ -87,16 +87,84 @@ import com.example.ui.theme.HoloCyan
 import com.example.ui.theme.NeonPink
 import com.example.ui.theme.SolarAmber
 import com.example.ui.theme.parseThemeHex
+import androidx.compose.runtime.rememberCoroutineScope
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.firestore
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 private const val AVATAR_LOCAL_PREFS_NAME = "stages_of_life_3d_avatar_prefs"
 private const val KEY_SELECTED_MODEL_ID = "selected_base_model_id"
 private const val KEY_SELECTED_POSE = "selected_pose_stance"
 private const val KEY_SELECTED_SHADER = "selected_shader_mode"
+private const val KEY_SELECTED_VISUAL_THEME = "selected_visual_theme_id"
 private const val KEY_GEAR_ENABLED = "equipped_gear_enabled"
 private const val KEY_YAW_ANGLE = "turntable_yaw_deg"
+
+data class AvatarVisualThemeOption(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val primaryHex: String,
+    val secondaryHex: String,
+    val badge: String
+)
+
+val AVATAR_VISUAL_THEME_OPTIONS = listOf(
+    AvatarVisualThemeOption(
+        id = "HYPERCUBE_6D",
+        title = "6D Hypercube Wire",
+        subtitle = "Holographic tesseract grid & cyan/indigo rim light",
+        primaryHex = "#00E5FF",
+        secondaryHex = "#6366F1",
+        badge = "🧊"
+    ),
+    AvatarVisualThemeOption(
+        id = "CYBER_SYNTHWAVE",
+        title = "Cyber Synthwave",
+        subtitle = "Neon sunset horizon & magenta laser grid",
+        primaryHex = "#EC4899",
+        secondaryHex = "#F59E0B",
+        badge = "🌆"
+    ),
+    AvatarVisualThemeOption(
+        id = "GALAXY_VORTEX",
+        title = "Galaxy Vortex",
+        subtitle = "Orbital starfield rings & deep nebula aura",
+        primaryHex = "#A855F7",
+        secondaryHex = "#38BDF8",
+        badge = "🌌"
+    ),
+    AvatarVisualThemeOption(
+        id = "CRYSTAL_PRISM",
+        title = "Crystal Prism",
+        subtitle = "Refractive diamond facets & emerald spectrum",
+        primaryHex = "#10B981",
+        secondaryHex = "#00E5FF",
+        badge = "💎"
+    ),
+    AvatarVisualThemeOption(
+        id = "AURORA_WAVE",
+        title = "Aurora Borealis",
+        subtitle = "Flowing polar light ribbons & solar corona",
+        primaryHex = "#2DD4BF",
+        secondaryHex = "#818CF8",
+        badge = "✨"
+    ),
+    AvatarVisualThemeOption(
+        id = "MATRIX_CYBERNETIC",
+        title = "Matrix Cybernetic",
+        subtitle = "Digital telemetry rain & emerald neural mesh",
+        primaryHex = "#22C55E",
+        secondaryHex = "#EAB308",
+        badge = "⚡"
+    )
+)
 
 data class Persona3DBaseCharacterModel(
     val id: String,
@@ -216,9 +284,13 @@ fun Persona3DAvatarSelectionCard(
     onSelectPersonaStage: (String) -> Unit = {},
     onEquipBadgeEmoji: (String) -> Unit = {},
     onShareCharacterToWall: (title: String, body: String) -> Unit = { _, _ -> },
+    currentVisualThemeId: String = "HYPERCUBE_6D",
+    onSelectVisualTheme: (themeId: String, primaryHex: String) -> Unit = { _, _ -> },
+    onSaveAvatarToFirestore: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val prefs = remember(context) {
         context.getSharedPreferences(AVATAR_LOCAL_PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -245,6 +317,11 @@ fun Persona3DAvatarSelectionCard(
             prefs.getString(KEY_SELECTED_SHADER, "Holo PBR + Wire") ?: "Holo PBR + Wire"
         )
     }
+    var selectedVisualThemeId by rememberSaveable(currentVisualThemeId) {
+        mutableStateOf(
+            prefs.getString(KEY_SELECTED_VISUAL_THEME, currentVisualThemeId) ?: currentVisualThemeId
+        )
+    }
     var gearEnabled by rememberSaveable {
         mutableStateOf(prefs.getBoolean(KEY_GEAR_ENABLED, true))
     }
@@ -253,13 +330,19 @@ fun Persona3DAvatarSelectionCard(
     }
     var autoRotateTurntable by rememberSaveable { mutableStateOf(true) }
     var isFullScreenSelectorOpen by rememberSaveable { mutableStateOf(false) }
+    var isSavingToFirestore by remember { mutableStateOf(false) }
     var localSaveStatusBanner by rememberSaveable {
-        mutableStateOf("Local State Active • Persisted on device")
+        mutableStateOf("3D Avatar Preview & Theme Ready • Local + Firestore Cloud Sync")
     }
 
     val activeModel = remember(selectedModelId) {
         PERSONA_3D_BASE_CHARACTER_MODELS.firstOrNull { it.id == selectedModelId }
             ?: defaultModelForPersona
+    }
+
+    val activeVisualTheme = remember(selectedVisualThemeId) {
+        AVATAR_VISUAL_THEME_OPTIONS.firstOrNull { it.id == selectedVisualThemeId }
+            ?: AVATAR_VISUAL_THEME_OPTIONS.first()
     }
 
     val matchingPreset = remember(activeModel) {
@@ -272,6 +355,7 @@ fun Persona3DAvatarSelectionCard(
         model: Persona3DBaseCharacterModel,
         pose: String = selectedPose,
         shader: String = selectedShaderMode,
+        visualThemeId: String = selectedVisualThemeId,
         gear: Boolean = gearEnabled,
         yaw: Float = manualYawDegrees
     ) {
@@ -279,6 +363,7 @@ fun Persona3DAvatarSelectionCard(
             .putString(KEY_SELECTED_MODEL_ID, model.id)
             .putString(KEY_SELECTED_POSE, pose)
             .putString(KEY_SELECTED_SHADER, shader)
+            .putString(KEY_SELECTED_VISUAL_THEME, visualThemeId)
             .putBoolean(KEY_GEAR_ENABLED, gear)
             .putFloat(KEY_YAW_ANGLE, yaw)
             .apply()
@@ -288,7 +373,48 @@ fun Persona3DAvatarSelectionCard(
         onSelect3DAvatarPreset(preset)
         onEquipBadgeEmoji(model.badgeEmoji)
         localSaveStatusBanner =
-            "Saved '${model.modelName}' (${model.personaStage} Stage • $pose) to Local State ✓"
+            "Previewing '${model.modelName}' • Theme: ${activeVisualTheme.title} ($pose) ✓"
+    }
+
+    fun saveAvatarAndVisualThemeToFirestore() {
+        persistSelectionLocally(activeModel)
+        onSelectPersonaStage(activeModel.personaStage)
+        onSelectVisualTheme(activeVisualTheme.id, activeVisualTheme.primaryHex)
+        onSaveAvatarToFirestore()
+
+        val uid = runCatching { Firebase.auth.currentUser?.uid }.getOrNull()
+        if (uid != null) {
+            coroutineScope.launch {
+                isSavingToFirestore = true
+                val opId = GlobalLoadingTracker.beginRequest(
+                    title = "Saving 3D Avatar & Theme to Firestore",
+                    subtitle = "${activeModel.modelName} • ${activeVisualTheme.title}",
+                    category = "Firestore 3D Avatar"
+                )
+                try {
+                    val payload = mapOf(
+                        "themeVisualStyle" to activeVisualTheme.id,
+                        "themeColorHex" to activeVisualTheme.primaryHex,
+                        "role" to activeModel.personaStage.lowercase()
+                    )
+                    Firebase.firestore.collection("users")
+                        .document(uid)
+                        .set(payload, SetOptions.merge())
+                        .await()
+                    localSaveStatusBanner =
+                        "☁️ Saved 3D Avatar ('${activeModel.modelName}') & '${activeVisualTheme.title}' Theme to Firestore!"
+                } catch (e: Exception) {
+                    localSaveStatusBanner =
+                        "✓ Saved 3D Avatar & '${activeVisualTheme.title}' Theme locally (Cloud sync queued)"
+                } finally {
+                    GlobalLoadingTracker.endRequest(opId)
+                    isSavingToFirestore = false
+                }
+            }
+        } else {
+            localSaveStatusBanner =
+                "✓ Saved 3D Avatar ('${activeModel.modelName}') & '${activeVisualTheme.title}' Theme (Sign in to sync to Firestore)"
+        }
     }
 
     // Ensure initial local state syncs with ViewModel preset if none was selected yet
@@ -497,6 +623,7 @@ fun Persona3DAvatarSelectionCard(
                             yawDegrees = effectiveYawDegrees,
                             poseStance = selectedPose,
                             shaderMode = selectedShaderMode,
+                            visualTheme = activeVisualTheme,
                             gearEnabled = gearEnabled,
                             accentColor = modelAccentColor,
                             modifier = Modifier.fillMaxSize()
@@ -791,16 +918,102 @@ fun Persona3DAvatarSelectionCard(
                 )
             }
 
-            // Action Buttons: Save & Apply to Persona Profile + Share to Community Hub
+            // 3. Customizable 3D Visual Theme Selector for Avatar Preview Window & Firestore Profile
+            Text(
+                text = "3. Select Customizable Visual Theme (Live 3D Preview + Firestore Sync)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            AVATAR_VISUAL_THEME_OPTIONS.chunked(2).forEach { themeRow ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    themeRow.forEach { themeOption ->
+                        val isThemeSelected = themeOption.id == activeVisualTheme.id
+                        val themePrimary = parseThemeHex(themeOption.primaryHex)
+                        val themeSecondary = parseThemeHex(themeOption.secondaryHex)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isThemeSelected) {
+                                themePrimary.copy(alpha = 0.20f)
+                            } else {
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                            },
+                            border = BorderStroke(
+                                width = if (isThemeSelected) 2.dp else 1.dp,
+                                color = if (isThemeSelected) themePrimary else themePrimary.copy(alpha = 0.35f)
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    selectedVisualThemeId = themeOption.id
+                                    persistSelectionLocally(
+                                        model = activeModel,
+                                        visualThemeId = themeOption.id
+                                    )
+                                    onSelectVisualTheme(themeOption.id, themeOption.primaryHex)
+                                }
+                                .testTag("avatar_3d_visual_theme_${themeOption.id.lowercase()}")
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.linearGradient(
+                                                listOf(themePrimary, themeSecondary)
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = themeOption.badge,
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = themeOption.title,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = if (isThemeSelected) themePrimary else MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = themeOption.subtitle,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Action Buttons: Save 3D Avatar & Theme to Firestore + Share to Community Hub
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
                     onClick = {
-                        persistSelectionLocally(activeModel)
-                        onSelectPersonaStage(activeModel.personaStage)
+                        saveAvatarAndVisualThemeToFirestore()
                     },
+                    enabled = !isSavingToFirestore,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = modelAccentColor,
                         contentColor = Color.Black
@@ -811,12 +1024,16 @@ fun Persona3DAvatarSelectionCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Save,
-                        contentDescription = "Apply and Persist 3D Base Character",
+                        contentDescription = "Save 3D Avatar Configuration and Visual Theme to Firestore",
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Equip '${activeModel.personaStage}' 3D Model",
+                        text = if (isSavingToFirestore) {
+                            "Saving to Firestore..."
+                        } else {
+                            "Save 3D Avatar & Theme to Firestore"
+                        },
                         fontWeight = FontWeight.ExtraBold
                     )
                 }
@@ -824,10 +1041,10 @@ fun Persona3DAvatarSelectionCard(
                 OutlinedButton(
                     onClick = {
                         onShareCharacterToWall(
-                            "Equipped ${activeModel.modelName} (${activeModel.personaStage} 3D Avatar)",
-                            "Customized my Stages Of Life 3D base character model with ${activeModel.rigArchetype}, $selectedPose stance, and ${activeModel.signatureAccessory}!"
+                            "Equipped ${activeModel.modelName} (${activeModel.personaStage} 3D Avatar • ${activeVisualTheme.title})",
+                            "Customized my Stages Of Life 3D avatar with ${activeModel.rigArchetype}, ${activeVisualTheme.title} visual theme, $selectedPose stance, and ${activeModel.signatureAccessory}!"
                         )
-                        localSaveStatusBanner = "Shared ${activeModel.modelName} to Stages Of Life Feed ✓"
+                        localSaveStatusBanner = "Shared ${activeModel.modelName} (${activeVisualTheme.title}) to Stages Of Life Feed ✓"
                     },
                     border = BorderStroke(1.dp, HoloCyan),
                     modifier = Modifier.testTag("share_3d_avatar_to_wall_button")
@@ -893,10 +1110,13 @@ private fun Persona3DCharacterRigCanvas(
     yawDegrees: Float,
     poseStance: String,
     shaderMode: String,
+    visualTheme: AvatarVisualThemeOption,
     gearEnabled: Boolean,
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val themePrimaryColor = parseThemeHex(visualTheme.primaryHex)
+    val themeSecondaryColor = parseThemeHex(visualTheme.secondaryHex)
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -906,6 +1126,21 @@ private fun Persona3DCharacterRigCanvas(
         val yawRad = (yawDegrees * PI / 180.0).toFloat()
         val cosYaw = cos(yawRad)
         val sinYaw = sin(yawRad)
+
+        // 0. Draw Customizable Visual Theme 3D Backdrop Aura
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    themePrimaryColor.copy(alpha = 0.24f),
+                    themeSecondaryColor.copy(alpha = 0.10f),
+                    Color.Transparent
+                ),
+                center = Offset(cx, h * 0.45f),
+                radius = w * 0.48f
+            ),
+            radius = w * 0.48f,
+            center = Offset(cx, h * 0.45f)
+        )
 
         // Subtle pose vertical bob / levitation offset
         val levitateOffset = when (poseStance) {
@@ -918,7 +1153,7 @@ private fun Persona3DCharacterRigCanvas(
         val pedestalRx = w * 0.28f
         val pedestalRy = h * 0.08f
         drawOval(
-            color = accentColor.copy(alpha = 0.16f),
+            color = themePrimaryColor.copy(alpha = 0.18f),
             topLeft = Offset(cx - pedestalRx, baseFloorY - pedestalRy),
             size = Size(pedestalRx * 2f, pedestalRy * 2f)
         )

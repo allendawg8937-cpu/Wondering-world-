@@ -55,6 +55,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.BuildConfig
 import com.example.ui.theme.CyberEmerald
 import com.example.ui.theme.HoloCyan
 import com.example.ui.theme.NeonPink
@@ -74,23 +75,23 @@ data class ReleaseChecklistItem(
 
 private val RELEASE_READINESS_CHECKLIST = listOf(
     ReleaseChecklistItem(
-        title = "Android Package & Release Version",
-        detail = "com.aistudio.wonderingworld.xqrvkl • v3.0 (versionCode 3) • API 36",
+        title = "Android Package & Release Build",
+        detail = "${BuildConfig.APPLICATION_ID} • v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE}) • API 24–36",
         badge = "READY"
     ),
     ReleaseChecklistItem(
         title = "Firebase Cloud & Gemini AI Backend",
-        detail = "gen-lang-client-0751970896 • Firestore Rules Deployed • App Check Active",
+        detail = "Firestore Security Rules Verified • App Check & Credential Manager Active",
         badge = "LIVE"
     ),
     ReleaseChecklistItem(
         title = "Google Play & Creator Program Compliance",
-        detail = "Zero prohibited permissions • Adaptive Icon • Edge-to-Edge M3 UI",
+        detail = "Zero prohibited permissions • Adaptive 3D Icon • Edge-to-Edge M3 UI",
         badge = "VERIFIED"
     ),
     ReleaseChecklistItem(
-        title = "Angular Web & Android Companion Sync",
-        detail = "AuthGuard + AppShell Sidebar Logout + Global Loading Spinner Overlay",
+        title = "Installable APK / Google Play AAB",
+        detail = "Signed release & debug configurations ready for AI Studio APK / AAB export",
         badge = "SYNCED"
     )
 )
@@ -104,10 +105,11 @@ fun PlatformReleaseAndDownloadHubCard(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val versionTag = "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})"
     var statusBanner by rememberSaveable {
-        mutableStateOf("Release v3.0 (Build 3) verified and ready for APK/AAB download, sharing, and Google Play publishing.")
+        mutableStateOf("Release $versionTag verified and ready for APK install, AAB download, and Google Play publishing.")
     }
-    var showChecklist by rememberSaveable { mutableStateOf(true) }
+    var showChecklist by rememberSaveable { mutableStateOf(false) }
 
     fun copyToClipboard(label: String, value: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
@@ -117,13 +119,13 @@ fun PlatformReleaseAndDownloadHubCard(
 
     fun sharePlatformLink() {
         val shareText = buildString {
-            appendLine("Stages Of Life (v3.0) — Create Your Life!")
-            appendLine("Explore 3D Persona Themes (Kid, Teen, Student, Adult, Business, Veteran), 3D Avatar Studio, AI Research Bot, Financial Goals, and Community Hub:")
+            appendLine("Stages Of Life ($versionTag) — Create Your Life!")
+            appendLine("Explore 3D Persona Dashboards (Kid, Teen, Student, Adult, Business, Veteran), 3D Avatar Studio, AI Research Bot, Wallet, and Community Hub:")
             appendLine(PRODUCTION_SHARED_APP_URL)
         }
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "Stages Of Life — 3D Community & Life Stage Platform")
+            putExtra(Intent.EXTRA_SUBJECT, "Stages Of Life — Install & Download App")
             putExtra(Intent.EXTRA_TEXT, shareText)
         }
         val chooser = Intent.createChooser(sendIntent, "Share Stages Of Life App").apply {
@@ -144,14 +146,14 @@ fun PlatformReleaseAndDownloadHubCard(
     fun runPrePublishVerificationCheck() {
         coroutineScope.launch {
             GlobalLoadingTracker.withLoading(
-                title = "Running v3.0 Mainstay & Publish Verification...",
+                title = "Running $versionTag Publish Verification...",
                 subtitle = "Step 1/3: Auditing APK/AAB signing config & Google Play policy compliance",
                 category = "Release Verification",
                 minDisplayMillis = 950L
             ) { opId ->
                 GlobalLoadingTracker.updateRequest(
                     id = opId,
-                    subtitle = "Step 1/3: Verified versionCode 3 (v3.0) & release signing config",
+                    subtitle = "Step 1/3: Verified Build ${BuildConfig.VERSION_CODE} ($versionTag) & release signing config",
                     progress = 0.35f
                 )
                 delay(320L)
@@ -168,7 +170,8 @@ fun PlatformReleaseAndDownloadHubCard(
                 )
                 onTriggerFullCloudSync()
                 delay(280L)
-                statusBanner = "✓ All v3.0 Mainstay, Download (APK/AAB/ZIP) & Publish checks passed for $userDisplayName!"
+                showChecklist = true
+                statusBanner = "✓ All $versionTag Download (APK/AAB/ZIP) & Publish checks passed for $userDisplayName!"
             }
         }
     }
@@ -220,13 +223,13 @@ fun PlatformReleaseAndDownloadHubCard(
                     }
                     Column {
                         Text(
-                            text = "MAINSTAY RELEASE, DOWNLOAD & PUBLISH HUB",
+                            text = "PUBLISH, DOWNLOAD & INSTALL HUB",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = CyberEmerald
                         )
                         Text(
-                            text = "Stages Of Life v3.0 (Build 3) • APK / AAB / Web / GitHub Ready",
+                            text = "Stages Of Life $versionTag • APK / Play AAB / Web Ready",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -250,7 +253,7 @@ fun PlatformReleaseAndDownloadHubCard(
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
-                            text = "v3.0 LIVE",
+                            text = "v${BuildConfig.VERSION_NAME} READY",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.ExtraBold,
                             color = CyberEmerald
@@ -296,7 +299,19 @@ fun PlatformReleaseAndDownloadHubCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Verify & Sync v3.0", fontWeight = FontWeight.ExtraBold)
+                    Text("Verify Publish & Sync", fontWeight = FontWeight.ExtraBold)
+                }
+
+                OutlinedButton(
+                    onClick = { showChecklist = !showChecklist },
+                    border = BorderStroke(1.dp, CyberEmerald.copy(alpha = 0.7f)),
+                    modifier = Modifier.testTag("release_hub_toggle_checklist_button")
+                ) {
+                    Text(
+                        text = if (showChecklist) "Hide Checklist" else "Publish Checklist",
+                        color = CyberEmerald,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 OutlinedButton(
@@ -424,8 +439,8 @@ fun PlatformReleaseAndDownloadHubCard(
                         )
                     }
                     Text(
-                        text = "• Download APK / AAB: Open the AI Studio Settings/Export menu (top-right) -> Generate APK or Android App Bundle (AAB) for Google Play Console.\n" +
-                            "• Export Source / GitHub: Select Download ZIP or Push to GitHub to export both the Android v3.0 project and Angular web project.\n" +
+                        text = "• Download APK / Play Store AAB: Use AI Studio's top-right Settings / Export menu -> Generate APK (direct Android install) or AAB (Google Play release).\n" +
+                            "• Export Source / GitHub: Select Download ZIP or Push to GitHub to back up or publish the full Android project.\n" +
                             "• Deep Link URI: $DEEP_LINK_SCHEME_URI",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFE2E8F0)

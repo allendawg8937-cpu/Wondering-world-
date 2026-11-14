@@ -14,17 +14,30 @@ service cloud.firestore {
       return ts is timestamp;
     }
 
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 100 && !id.matches('.*[/\\\\].*');
+    }
+
     // --- Users Collection ---
     match /users/{userId} {
       allow read: if isSignedIn(); // Allow reading profiles for community features
       allow create: if isOwner(userId) && isValidUser(request.resource.data);
       allow update: if isOwner(userId) && isValidUser(request.resource.data);
-      allow delete: if false; // Profiles are permanent for now
+      allow delete: if isOwner(userId); // Owner can permanently delete their account
 
       function isValidUser(data) {
-        return data.userId == request.auth.uid
+        return data.keys().hasOnly([
+            'userId', 'displayName', 'email', 'role', 'age', 'location', 'bio',
+            'themeColorHex', 'themeVisualStyle', 'isDarkMode', 'musicTrackTitle',
+            'musicPlatform', 'savingsBalanceCents', 'savingsGoalCents', 'arcadeHighScore',
+            'pledgeAccepted', 'phoneNumber', 'interests', 'spotifyConnected',
+            'spotifyUserId', 'appleMusicConnected', 'appleMusicStorefront',
+            'virtualCurrencyBalance', 'earnedBadges', 'ownedVirtualItems',
+            'createdAt', 'updatedAt'
+          ])
+          && data.userId == request.auth.uid
           && data.displayName is string && data.displayName.size() <= 60
-          && data.role in ['veteran', 'business', 'creator', 'adult', 'student']
+          && data.role in ['veteran', 'business', 'creator', 'adult', 'student', 'kid', 'teen']
           && data.age is int && data.age >= 13 && data.age <= 120
           && data.location is string && data.location.size() <= 80
           && data.bio is string && data.bio.size() <= 300
@@ -118,6 +131,130 @@ service cloud.firestore {
             && isValidTimestamp(data.updatedAt);
         }
       }
+
+      match /profile_3d_configs/{configId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(configId)
+          && isValidProfile3DConfig(request.resource.data)
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.createdAt <= request.time;
+        allow update: if isOwner(userId)
+          && isValidId(configId)
+          && isValidProfile3DConfig(request.resource.data)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'configName', 'baseModelId', 'baseModelName',
+            'primaryColorHex', 'secondaryColorHex', 'auraColorHex',
+            'headgearId', 'eyewearId', 'auraId', 'rigId',
+            'metallicFinish', 'scaleFactor', 'autoRotate', 'turntableYawDeg',
+            'isActive', 'updatedAt'
+          ]);
+        allow delete: if isOwner(userId) && isValidId(configId);
+
+        function isValidHexColor(hex) {
+          return hex is string && hex.size() >= 7 && hex.size() <= 9 && hex.matches('^#[0-9a-fA-F]{6,8}$');
+        }
+
+        function isValidProfile3DConfig(data) {
+          return data.keys().hasOnly([
+              'userId', 'configName', 'baseModelId', 'baseModelName',
+              'primaryColorHex', 'secondaryColorHex', 'auraColorHex',
+              'headgearId', 'eyewearId', 'auraId', 'rigId',
+              'metallicFinish', 'scaleFactor', 'autoRotate', 'turntableYawDeg',
+              'isActive', 'createdAt', 'updatedAt'
+            ])
+            && data.userId == request.auth.uid
+            && data.configName is string && data.configName.size() >= 1 && data.configName.size() <= 60
+            && data.baseModelId in ['cyber_astronaut', 'holo_scholar', 'cosmic_pioneer', 'neon_tactician', 'eco_guardian', 'street_innovator']
+            && data.baseModelName is string && data.baseModelName.size() >= 1 && data.baseModelName.size() <= 60
+            && isValidHexColor(data.primaryColorHex)
+            && isValidHexColor(data.secondaryColorHex)
+            && isValidHexColor(data.auraColorHex)
+            && data.headgearId in ['head_none', 'head_crown', 'head_halo', 'head_headphones', 'head_helmet', 'head_beret']
+            && data.eyewearId in ['eye_none', 'eye_visor', 'eye_shades', 'eye_hud', 'eye_pixel']
+            && data.auraId in ['aura_none', 'aura_drones', 'aura_wings', 'aura_stars', 'aura_shield']
+            && data.rigId in ['rig_none', 'rig_pauldrons', 'rig_cape', 'rig_medallion', 'rig_collar']
+            && data.metallicFinish is number && data.metallicFinish >= 0.0 && data.metallicFinish <= 1.0
+            && data.scaleFactor is number && data.scaleFactor >= 0.6 && data.scaleFactor <= 1.5
+            && data.autoRotate is bool
+            && data.turntableYawDeg is number && data.turntableYawDeg >= -180.0 && data.turntableYawDeg <= 360.0
+            && data.isActive is bool
+            && isValidTimestamp(data.updatedAt)
+            && data.updatedAt <= request.time;
+        }
+      }
+
+      match /persona_stage_data/{stageId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && stageId in ['kid', 'teen', 'student', 'adult', 'business', 'veteran']
+          && isValidPersonaStageData(request.resource.data, stageId)
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.createdAt <= request.time;
+        allow update: if isOwner(userId)
+          && stageId in ['kid', 'teen', 'student', 'adult', 'business', 'veteran']
+          && isValidPersonaStageData(request.resource.data, stageId)
+          && request.resource.data.userId == resource.data.userId
+          && request.resource.data.stageId == resource.data.stageId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'stageLabel', 'focusGoal', 'primaryMetricLabel',
+            'primaryMetricValue', 'primaryMetricTarget',
+            'pinnedTopics', 'completedTaskIds', 'customNote',
+            'stageScoreOrXp', 'updatedAt'
+          ]);
+        allow delete: if isOwner(userId)
+          && stageId in ['kid', 'teen', 'student', 'adult', 'business', 'veteran'];
+
+        function isValidPersonaStageData(data, expectedStageId) {
+          return data.keys().hasOnly([
+              'userId', 'stageId', 'stageLabel', 'focusGoal',
+              'primaryMetricLabel', 'primaryMetricValue', 'primaryMetricTarget',
+              'pinnedTopics', 'completedTaskIds', 'customNote',
+              'stageScoreOrXp', 'createdAt', 'updatedAt'
+            ])
+            && data.userId == request.auth.uid
+            && data.stageId == expectedStageId
+            && data.stageLabel in ['Kid', 'Teen', 'Student', 'Adult', 'Business', 'Veteran']
+            && data.focusGoal is string && data.focusGoal.size() <= 140
+            && data.primaryMetricLabel is string && data.primaryMetricLabel.size() <= 60
+            && data.primaryMetricValue is number && data.primaryMetricValue >= 0.0 && data.primaryMetricValue <= 10000000.0
+            && data.primaryMetricTarget is number && data.primaryMetricTarget >= 1.0 && data.primaryMetricTarget <= 10000000.0
+            && data.pinnedTopics is list && data.pinnedTopics.size() <= 12
+            && data.completedTaskIds is list && data.completedTaskIds.size() <= 20
+            && data.customNote is string && data.customNote.size() <= 400
+            && data.stageScoreOrXp is int && data.stageScoreOrXp >= 0 && data.stageScoreOrXp <= 1000000
+            && isValidTimestamp(data.updatedAt)
+            && data.updatedAt <= request.time;
+        }
+      }
+
+      match /blocked_users/{blockedUserId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && isValidId(blockedUserId)
+          && isValidBlockedUser(request.resource.data, blockedUserId)
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.createdAt <= request.time;
+        allow update: if false; // Block records are immutable; unblock removes the document
+        allow delete: if isOwner(userId) && isValidId(blockedUserId);
+
+        function isValidBlockedUser(data, expectedBlockedId) {
+          return data.keys().hasAll([
+              'userId', 'blockedUserId', 'blockedDisplayName', 'reason', 'createdAt'
+            ])
+            && data.keys().hasOnly([
+              'userId', 'blockedUserId', 'blockedDisplayName', 'reason', 'createdAt'
+            ])
+            && data.userId == request.auth.uid
+            && data.blockedUserId == expectedBlockedId
+            && data.blockedUserId != request.auth.uid
+            && data.blockedDisplayName is string && data.blockedDisplayName.size() >= 1 && data.blockedDisplayName.size() <= 60
+            && data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 100;
+        }
+      }
     }
 
     // --- Friend Requests Collection ---
@@ -151,6 +288,34 @@ service cloud.firestore {
           && data.status == 'pending'
           && isValidTimestamp(data.createdAt);
       }
+    }
+
+    // --- Video Reel Comments Collection (VideoReelsComponent) ---
+    match /video_reel_comments/{commentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && isValidVideoReelComment(request.resource.data);
+      allow update: if isSignedIn()
+        && request.resource.data.userId == resource.data.userId
+        && isValidVideoReelComment(request.resource.data);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      function isValidVideoReelComment(data) {
+        return data.reelId is string && data.reelId.size() > 0 && data.reelId.size() <= 100
+          && data.videoId is string && data.videoId.size() > 0 && data.videoId.size() <= 40
+          && data.userId is string && data.userId.size() > 0
+          && data.authorName is string && data.authorName.size() <= 60
+          && data.authorRole is string && data.authorRole.size() <= 40
+          && data.text is string && data.text.size() > 0 && data.text.size() <= 600
+          && data.likesCount is int && data.likesCount >= 0
+          && isValidTimestamp(data.createdAt);
+      }
+    }
+
+    // Default deny for any unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

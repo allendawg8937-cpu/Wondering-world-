@@ -4,16 +4,23 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.credentials.CredentialManager
 import com.example.R
+import com.example.data.model.BlockedUser
 import com.example.data.model.BudgetEntry
 import com.example.data.model.CareerMilestone
+import com.example.ui.auth.AuthManager
 import com.example.data.model.CommunityConnectionCard
 import com.example.data.model.PersonalizedDailyInsight
+import com.example.data.model.PersonaStageData
+import com.example.data.model.Profile3DConfig
 import com.example.data.model.ResourceDirectoryItem
 import com.example.data.model.UserInteraction
 import com.example.data.model.UserProfile
 import com.example.data.model.WallPost
+import com.example.data.model.buildDefaultPersonaStageData
 import com.example.data.model.buildDefaultStudentCareerMilestones
+import com.example.data.model.normalizePersonaStageId
 import com.example.data.repository.WonderingWorldRepository
 import com.example.ui.components.BackgroundSongPreset
 import com.example.ui.components.CurrencyEarnBadgeQuest
@@ -978,6 +985,45 @@ class WonderingWorldViewModel(
         buildDefaultStudentCareerMilestones("local_user")
     )
 
+    private val _localProfile3DConfigs = MutableStateFlow(
+        listOf(
+            Profile3DConfig(
+                id = "active",
+                userId = "local_user",
+                configName = "Cosmic Vanguard",
+                baseModelId = "cyber_astronaut",
+                baseModelName = "Cyber Astronaut",
+                primaryColorHex = "#00E5FF",
+                secondaryColorHex = "#FF2E93",
+                auraColorHex = "#00E676",
+                headgearId = "head_crown",
+                eyewearId = "eye_visor",
+                auraId = "aura_drones",
+                rigId = "rig_pauldrons",
+                metallicFinish = 0.72,
+                scaleFactor = 1.0,
+                autoRotate = true,
+                turntableYawDeg = 14.0,
+                isActive = true
+            )
+        )
+    )
+    private val _profile3DSaving = MutableStateFlow(false)
+    val profile3DSaving: StateFlow<Boolean> = _profile3DSaving.asStateFlow()
+
+    private val _profile3DStatusBanner = MutableStateFlow<String?>(null)
+    val profile3DStatusBanner: StateFlow<String?> = _profile3DStatusBanner.asStateFlow()
+
+    private val _localPersonaStageMap = MutableStateFlow(
+        listOf("kid", "teen", "student", "adult", "business", "veteran")
+            .associateWith { stageKey -> buildDefaultPersonaStageData(stageKey) }
+    )
+    private val _personaStageSaving = MutableStateFlow(false)
+    val personaStageSaving: StateFlow<Boolean> = _personaStageSaving.asStateFlow()
+
+    private val _personaStageStatusBanner = MutableStateFlow<String?>(null)
+    val personaStageStatusBanner: StateFlow<String?> = _personaStageStatusBanner.asStateFlow()
+
     private val _personalizedInsightsState = MutableStateFlow<UiState<List<PersonalizedDailyInsight>>>(
         UiState.Success(
             listOf(
@@ -1034,6 +1080,8 @@ class WonderingWorldViewModel(
         )
     )
 
+    private val _pendingPersonaRoleOverride = MutableStateFlow<Pair<String, Long>?>(null)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val userProfileState: StateFlow<UiState<UserProfile?>> = combine(
         _authenticatedUid.flatMapLatest { uid ->
@@ -1043,8 +1091,18 @@ class WonderingWorldViewModel(
                 repository.observeUserProfile(uid)
                     .map { profile ->
                         if (profile != null) {
-                            syncFormFromProfile(profile)
-                            _localProfile.value = profile
+                            val pending = _pendingPersonaRoleOverride.value
+                            if (pending == null || profile.role == pending.first) {
+                                if (pending != null && profile.role == pending.first) {
+                                    _pendingPersonaRoleOverride.value = null
+                                }
+                                syncFormFromProfile(profile)
+                                _localProfile.value = profile
+                            } else {
+                                val merged = profile.copy(role = pending.first, age = pending.second)
+                                syncFormFromProfile(merged)
+                                _localProfile.value = merged
+                            }
                         }
                         profile
                     }
@@ -1059,13 +1117,61 @@ class WonderingWorldViewModel(
                     }
             }
         },
-        _localProfile
-    ) { cloudProfile, localFallback ->
-        UiState.Success(cloudProfile ?: localFallback)
+        _localProfile,
+        _pendingPersonaRoleOverride
+    ) { cloudProfile, localFallback, pendingRole ->
+        val baseProfile = cloudProfile ?: localFallback
+        val resolvedProfile = if (pendingRole != null) {
+            baseProfile.copy(role = pendingRole.first, age = pendingRole.second)
+        } else {
+            baseProfile
+        }
+        UiState.Success(resolvedProfile)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = UiState.Success(_localProfile.value)
+    )
+
+    private val _preferredSearchEngine = MutableStateFlow("Google")
+    val preferredSearchEngine: StateFlow<String> = _preferredSearchEngine.asStateFlow()
+
+    private val _platformLayoutMode = MutableStateFlow("Balanced")
+    val platformLayoutMode: StateFlow<String> = _platformLayoutMode.asStateFlow()
+
+    private val _platformNotificationsEnabled = MutableStateFlow(true)
+    val platformNotificationsEnabled: StateFlow<Boolean> = _platformNotificationsEnabled.asStateFlow()
+
+    private val _showMatureLoungeEnabled = MutableStateFlow(true)
+    val showMatureLoungeEnabled: StateFlow<Boolean> = _showMatureLoungeEnabled.asStateFlow()
+
+    private val _selectedWalletTier = MutableStateFlow("Personal Digital Wallet")
+    val selectedWalletTier: StateFlow<String> = _selectedWalletTier.asStateFlow()
+
+    private val _localBlockedUsers = MutableStateFlow<List<BlockedUser>>(emptyList())
+    private val _settingsStatusBanner = MutableStateFlow<String?>(null)
+    val settingsStatusBanner: StateFlow<String?> = _settingsStatusBanner.asStateFlow()
+
+    private val _isDeletingAccount = MutableStateFlow(false)
+    val isDeletingAccount: StateFlow<Boolean> = _isDeletingAccount.asStateFlow()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val blockedUsersState: StateFlow<List<BlockedUser>> = combine(
+        _authenticatedUid.flatMapLatest { uid ->
+            if (uid == null) {
+                flowOf(emptyList())
+            } else {
+                repository.observeBlockedUsers(uid).catch { emit(emptyList()) }
+            }
+        },
+        _localBlockedUsers
+    ) { cloudBlocked, localBlocked ->
+        (cloudBlocked + localBlocked)
+            .distinctBy { it.blockedUserId.ifBlank { it.blockedDisplayName.lowercase() } }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        initialValue = emptyList()
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -1077,9 +1183,17 @@ class WonderingWorldViewModel(
                 repository.observeWallPosts(uid).catch { emit(emptyList()) }
             }
         },
-        _localWallPosts
-    ) { cloudPosts, localPosts ->
-        val merged = (cloudPosts + localPosts).distinctBy { it.title + it.content }
+        _localWallPosts,
+        blockedUsersState
+    ) { cloudPosts, localPosts, blockedList ->
+        val blockedIds = blockedList.map { it.blockedUserId.lowercase() }.toSet()
+        val blockedNames = blockedList.map { it.blockedDisplayName.lowercase() }.toSet()
+        val merged = (cloudPosts + localPosts)
+            .distinctBy { it.title + it.content }
+            .filterNot { post ->
+                post.userId.lowercase() in blockedIds ||
+                    post.authorName.trim().lowercase() in blockedNames
+            }
         UiState.Success(merged)
     }.stateIn(
         scope = viewModelScope,
@@ -1146,6 +1260,66 @@ class WonderingWorldViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = UiState.Success(_localCareerMilestones.value)
+    )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val profile3DConfigsState: StateFlow<List<Profile3DConfig>> = combine(
+        _authenticatedUid.flatMapLatest { uid ->
+            if (uid == null) {
+                flowOf(emptyList())
+            } else {
+                repository.observeProfile3DConfigs(uid)
+                    .catch { error ->
+                        val firestoreError = generateSequence(error) { it.cause }
+                            .filterIsInstance<FirebaseFirestoreException>()
+                            .firstOrNull()
+                        if (firestoreError == null && error is CancellationException) throw error
+                        Log.w(TAG, "Error observing 3D profile configs", firestoreError ?: error)
+                        emit(emptyList())
+                    }
+            }
+        },
+        _localProfile3DConfigs
+    ) { cloudConfigs, localConfigs ->
+        if (cloudConfigs.isNotEmpty()) cloudConfigs else localConfigs
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        initialValue = _localProfile3DConfigs.value
+    )
+
+    private val _pendingPersonaStages = MutableStateFlow<Map<String, PersonaStageData>>(emptyMap())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val personaStageDataMapState: StateFlow<Map<String, PersonaStageData>> = combine(
+        _authenticatedUid.flatMapLatest { uid ->
+            if (uid == null) {
+                flowOf(emptyList())
+            } else {
+                repository.observeAllPersonaStageData(uid)
+                    .catch { error ->
+                        val firestoreError = generateSequence(error) { it.cause }
+                            .filterIsInstance<FirebaseFirestoreException>()
+                            .firstOrNull()
+                        if (firestoreError == null && error is CancellationException) throw error
+                        Log.w(TAG, "Error observing persona stage data", firestoreError ?: error)
+                        emit(emptyList())
+                    }
+            }
+        },
+        _localPersonaStageMap,
+        _pendingPersonaStages
+    ) { cloudStages, localMap, pendingMap ->
+        val defaultMap = listOf("kid", "teen", "student", "adult", "business", "veteran")
+            .associateWith { stageKey -> buildDefaultPersonaStageData(stageKey) }
+        val cloudMap = cloudStages.associateBy {
+            normalizePersonaStageId(it.stageId.ifBlank { it.id })
+        }
+        defaultMap + localMap + cloudMap + pendingMap
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        initialValue = _localPersonaStageMap.value
     )
 
     fun advancePageThemeColor() {
@@ -1250,43 +1424,21 @@ class WonderingWorldViewModel(
 
     fun navigateToMainDashboard(preserveSelectedTheme: Boolean = false) {
         _authBannerMessage.value = null
-        if (!preserveSelectedTheme) {
-            advancePageThemeColor()
-        } else {
+        if (preserveSelectedTheme) {
             persistThemeSelectionToFirestore()
         }
         refreshEveryLoginSuggestions()
         _navScreen.value = AppNavScreen.MAIN_DASHBOARD
-        viewModelScope.launch {
-            withGlobalNetworkLoading(
-                title = "Loading Dashboard Data...",
-                subtitle = "Fetching Firebase profile, community wall & finance goals",
-                category = "Firebase / API Fetch",
-                minDisplayMillis = 420L
-            ) {
-                delay(200L)
-            }
-        }
     }
 
     fun selectDashboardTab(tab: DashboardTab) {
-        advancePageThemeColor()
+        if (_activeTab.value == tab) return
         _activeTab.value = tab
         logUserInteraction(
             actionType = "FeatureVisit",
             detail = "Opened ${tab.name.replace('_', ' ')} in 6D Hub",
             category = "Navigation"
         )
-        viewModelScope.launch {
-            withGlobalNetworkLoading(
-                title = "Fetching ${tab.name.replace('_', ' ')} Data...",
-                subtitle = "Synchronizing Firebase Firestore & API streams",
-                category = "Firebase / API Fetch",
-                minDisplayMillis = 360L
-            ) {
-                delay(180L)
-            }
-        }
     }
 
     fun setAuthBannerMessage(message: String?) {
@@ -1590,6 +1742,10 @@ class WonderingWorldViewModel(
     fun onAuthSessionChanged(uid: String?, defaultDisplayName: String?) {
         val previousUid = _authenticatedUid.value
         _authenticatedUid.value = uid
+        if (previousUid != uid) {
+            _pendingPersonaRoleOverride.value = null
+            _pendingPersonaStages.value = emptyMap()
+        }
         if (uid != null) {
             if (!defaultDisplayName.isNullOrBlank() && _signUpForm.value.displayName == "Jordan Vance") {
                 _signUpForm.update { it.copy(displayName = defaultDisplayName) }
@@ -1843,13 +1999,14 @@ class WonderingWorldViewModel(
 
     fun switchPersonaQuick(role: String, defaultAge: Long) {
         val coercedAge = defaultAge.coerceIn(13L, 120L)
+        _pendingPersonaRoleOverride.value = role to coercedAge
         _signUpForm.update { it.copy(role = role, ageText = coercedAge.toString()) }
         _localProfile.update { it.copy(role = role, age = coercedAge) }
         recordLearnedSignal("Age Group ($coercedAge) • ${role.uppercase()}")
         val uid = _authenticatedUid.value ?: return
-        val currentProfile = (userProfileState.value as? UiState.Success)?.data ?: return
+        val currentProfile = (userProfileState.value as? UiState.Success)?.data ?: _localProfile.value
         viewModelScope.launch {
-            repository.saveUserProfile(currentProfile.copy(role = role, age = coercedAge))
+            repository.saveUserProfile(currentProfile.copy(userId = uid, role = role, age = coercedAge))
         }
     }
 
@@ -2092,6 +2249,125 @@ class WonderingWorldViewModel(
         if (_authenticatedUid.value != null && !milestoneId.startsWith("local_ms_")) {
             viewModelScope.launch {
                 repository.deleteCareerMilestone(milestoneId)
+            }
+        }
+    }
+
+    // --- 3D Profile Customizer Firestore Persistence Actions ---
+
+    fun saveProfile3DConfig(config: Profile3DConfig, docId: String = "active") {
+        val uid = _authenticatedUid.value
+        val targetDocId = docId.trim().ifEmpty { "active" }
+        val normalized = config.copy(
+            id = targetDocId,
+            userId = uid ?: "local_user",
+            isActive = targetDocId == "active"
+        )
+        _localProfile3DConfigs.update { current ->
+            val withoutTarget = current.filterNot { it.id == targetDocId }
+            listOf(normalized) + withoutTarget
+        }
+        if (targetDocId == "active") {
+            _pageThemeColorHex.value = normalized.primaryColorHex
+            _signUpForm.update { it.copy(themeColorHex = normalized.primaryColorHex) }
+            _localProfile.update { it.copy(themeColorHex = normalized.primaryColorHex) }
+        }
+        logUserInteraction(
+            actionType = "ThemeChange",
+            detail = "Saved 3D Profile '${normalized.configName}' (${normalized.baseModelName})",
+            category = "3D Profile"
+        )
+        recordLearnedSignal("3D Model: ${normalized.baseModelName}")
+
+        if (uid == null) {
+            _profile3DStatusBanner.value = "✓ Saved '${normalized.configName}' locally (Sign in with Google to sync to Cloud Firestore)"
+            return
+        }
+
+        viewModelScope.launch {
+            _profile3DSaving.value = true
+            _profile3DStatusBanner.value = null
+            val result = withGlobalNetworkLoading(
+                title = "Saving 3D Profile Configuration...",
+                subtitle = "Persisting ${normalized.baseModelName} (${normalized.configName}) to Firestore",
+                category = "Firestore 3D Profile"
+            ) {
+                repository.saveProfile3DConfig(normalized)
+            }
+            _profile3DSaving.value = false
+            _profile3DStatusBanner.value = if (result.isSuccess) {
+                "☁️ Saved '${normalized.configName}' (${normalized.baseModelName}) to Cloud Firestore!"
+            } else {
+                "⚠️ Cloud save failed: ${result.exceptionOrNull()?.localizedMessage ?: "Permission or network error"}"
+            }
+        }
+    }
+
+    fun deleteProfile3DConfig(configId: String) {
+        if (configId.isBlank() || configId == "active") return
+        _localProfile3DConfigs.update { list -> list.filterNot { it.id == configId } }
+        val uid = _authenticatedUid.value
+        if (uid == null) {
+            _profile3DStatusBanner.value = "Removed local 3D preset."
+            return
+        }
+        viewModelScope.launch {
+            val result = repository.deleteProfile3DConfig(configId)
+            _profile3DStatusBanner.value = if (result.isSuccess) {
+                "Deleted 3D preset from Cloud Firestore."
+            } else {
+                "⚠️ Could not delete preset: ${result.exceptionOrNull()?.localizedMessage ?: "Error"}"
+            }
+        }
+    }
+
+    // --- Persona Dashboard Stage-Specific Firestore Persistence Actions ---
+
+    fun savePersonaStageData(data: PersonaStageData) {
+        val uid = _authenticatedUid.value
+        val normalizedStageId = normalizePersonaStageId(data.stageId.ifBlank { data.id })
+        val stageLabel = when (normalizedStageId) {
+            "kid" -> "Kid"
+            "teen" -> "Teen"
+            "student" -> "Student"
+            "business" -> "Business"
+            "veteran" -> "Veteran"
+            else -> "Adult"
+        }
+        val normalized = data.copy(
+            id = normalizedStageId,
+            userId = uid ?: "local_user",
+            stageId = normalizedStageId,
+            stageLabel = stageLabel
+        )
+        _localPersonaStageMap.update { current ->
+            current + (normalizedStageId to normalized)
+        }
+        _pendingPersonaStages.update { current ->
+            current + (normalizedStageId to normalized)
+        }
+        logUserInteraction(
+            actionType = "GoalLog",
+            detail = "Updated $stageLabel Stage Dashboard (${normalized.stageScoreOrXp} XP)",
+            category = "Persona Dashboard"
+        )
+        recordLearnedSignal("$stageLabel Stage: ${normalized.focusGoal.take(26)}")
+
+        if (uid == null) {
+            _personaStageStatusBanner.value = "✓ Saved $stageLabel stage draft locally (Sign in with Google to sync to Cloud Firestore)"
+            return
+        }
+
+        viewModelScope.launch {
+            _personaStageSaving.value = true
+            _personaStageStatusBanner.value = null
+            val result = repository.savePersonaStageData(normalized)
+            _personaStageSaving.value = false
+            if (result.isSuccess) {
+                _pendingPersonaStages.update { current -> current - normalizedStageId }
+                _personaStageStatusBanner.value = "☁️ Saved $stageLabel stage progress to Cloud Firestore!"
+            } else {
+                _personaStageStatusBanner.value = "✓ Updated locally • Cloud sync pending (${result.exceptionOrNull()?.localizedMessage ?: "Offline"})"
             }
         }
     }
@@ -2526,6 +2802,144 @@ class WonderingWorldViewModel(
                 appleMusicConnected = false,
                 appleMusicStorefront = ""
             ))
+        }
+    }
+
+    // --- Platform Preferences, User Blocking & Account Deletion ---
+
+    fun updatePreferredSearchEngine(engine: String) {
+        _preferredSearchEngine.value = engine
+        _settingsStatusBanner.value = "✓ Search platform changed to $engine."
+        recordLearnedSignal("Platform search changed to $engine")
+    }
+
+    fun updatePlatformLayoutMode(mode: String) {
+        _platformLayoutMode.value = mode
+        _settingsStatusBanner.value = "✓ Platform layout density set to $mode mode."
+    }
+
+    fun setPlatformNotificationsEnabled(enabled: Boolean) {
+        _platformNotificationsEnabled.value = enabled
+        _settingsStatusBanner.value = if (enabled) {
+            "✓ Platform notifications & community alerts enabled."
+        } else {
+            "🔕 Platform notifications muted."
+        }
+    }
+
+    fun setShowMatureLoungeEnabled(enabled: Boolean) {
+        _showMatureLoungeEnabled.value = enabled
+        _settingsStatusBanner.value = if (enabled) {
+            "✓ 18+ Stability Lounge access enabled (age-verified profiles)."
+        } else {
+            "🛡️ 18+ Stability Lounge hidden on platform."
+        }
+    }
+
+    fun selectWalletTier(tier: String) {
+        _selectedWalletTier.value = tier
+        _settingsStatusBanner.value = "💳 Wallet setup updated to $tier."
+        logUserInteraction("FinanceLiteracy", "Selected wallet tier: $tier", "Wallet")
+    }
+
+    fun clearSettingsStatusBanner() {
+        _settingsStatusBanner.value = null
+    }
+
+    fun blockCommunityUser(
+        targetUserId: String,
+        targetDisplayName: String,
+        reason: String = "Boundary Preference"
+    ) {
+        val cleanName = targetDisplayName.trim().ifEmpty { "Community Member" }.take(60)
+        val cleanId = targetUserId.trim().ifEmpty {
+            cleanName.lowercase().replace(Regex("[^a-z0-9_-]"), "_").take(50)
+        }
+        val uid = _authenticatedUid.value
+        if (cleanId == uid) {
+            _settingsStatusBanner.value = "You cannot block your own account."
+            return
+        }
+
+        val entry = BlockedUser(
+            id = cleanId,
+            userId = uid ?: "local_user",
+            blockedUserId = cleanId,
+            blockedDisplayName = cleanName,
+            reason = reason.trim().ifEmpty { "Boundary Preference" }.take(100),
+            createdAt = Timestamp.now()
+        )
+        _localBlockedUsers.update { existing ->
+            (listOf(entry) + existing).distinctBy { it.blockedUserId }
+        }
+        _discoveredUsers.update { list ->
+            list.filterNot { it.userId == cleanId || it.displayName.equals(cleanName, ignoreCase = true) }
+        }
+        _settingsStatusBanner.value = "🚫 Blocked $cleanName. Their posts & invites are now hidden."
+        recordLearnedSignal("Blocked user $cleanName")
+
+        if (uid != null) {
+            viewModelScope.launch {
+                repository.blockUser(cleanId, cleanName, entry.reason)
+            }
+        }
+    }
+
+    fun unblockCommunityUser(blockedUserId: String) {
+        _localBlockedUsers.update { list ->
+            list.filterNot { it.blockedUserId == blockedUserId || it.id == blockedUserId }
+        }
+        _settingsStatusBanner.value = "✓ User unblocked."
+        if (_authenticatedUid.value != null) {
+            viewModelScope.launch {
+                repository.unblockUser(blockedUserId)
+            }
+        }
+    }
+
+    fun deleteUserAccountPermanently(
+        credentialManager: CredentialManager,
+        scope: kotlinx.coroutines.CoroutineScope
+    ) {
+        if (_isDeletingAccount.value) return
+        viewModelScope.launch {
+            _isDeletingAccount.value = true
+            _settingsStatusBanner.value = "Deleting your cloud records and account..."
+            val uid = _authenticatedUid.value
+            if (uid != null) {
+                val dataResult = repository.deleteUserAccountData()
+                if (dataResult.isFailure) {
+                    _isDeletingAccount.value = false
+                    _settingsStatusBanner.value = "Could not delete cloud data: ${dataResult.exceptionOrNull()?.localizedMessage ?: "Unknown error"}"
+                    return@launch
+                }
+                AuthManager.deleteCurrentFirebaseAuthUser(
+                    credentialManager = credentialManager,
+                    scope = scope,
+                    onDeleted = {
+                        _isDeletingAccount.value = false
+                        _localBlockedUsers.value = emptyList()
+                        _localWallPosts.value = emptyList()
+                        _localBudgetEntries.value = emptyList()
+                        onAuthSessionChanged(null, null)
+                        _authBannerMessage.value = "Your account and all personal data have been permanently deleted."
+                        _navScreen.value = AppNavScreen.LOGIN
+                    },
+                    onRequiresRecentLogin = { message ->
+                        _isDeletingAccount.value = false
+                        _settingsStatusBanner.value = message
+                    },
+                    onError = { errMsg ->
+                        _isDeletingAccount.value = false
+                        _settingsStatusBanner.value = "Account deletion error: $errMsg"
+                    }
+                )
+            } else {
+                _isDeletingAccount.value = false
+                _localBlockedUsers.value = emptyList()
+                _authBannerMessage.value = "Local session and preferences cleared."
+                _navScreen.value = AppNavScreen.LOGIN
+            }
         }
     }
 

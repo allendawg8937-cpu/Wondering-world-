@@ -59,6 +59,16 @@ data class FriendRequest(
 )
 
 @IgnoreExtraProperties
+data class BlockedUser(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val blockedUserId: String = "",
+    val blockedDisplayName: String = "",
+    val reason: String = "Boundary Preference",
+    @ServerTimestamp val createdAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
 data class WallPost(
     @DocumentId val id: String = "",
     val userId: String = "",
@@ -130,6 +140,152 @@ data class ModerationFlag(
     val status: String = "pending",
     @ServerTimestamp val createdAt: Timestamp? = null
 )
+
+@IgnoreExtraProperties
+data class Profile3DConfig(
+    @DocumentId val id: String = "active",
+    val userId: String = "",
+    val configName: String = "Cosmic Explorer",
+    val baseModelId: String = "cyber_astronaut",
+    val baseModelName: String = "Cyber Astronaut",
+    val primaryColorHex: String = "#00E5FF",
+    val secondaryColorHex: String = "#FF2E93",
+    val auraColorHex: String = "#00E676",
+    val headgearId: String = "head_crown",
+    val eyewearId: String = "eye_visor",
+    val auraId: String = "aura_drones",
+    val rigId: String = "rig_pauldrons",
+    val metallicFinish: Double = 0.72,
+    val scaleFactor: Double = 1.0,
+    val autoRotate: Boolean = true,
+    val turntableYawDeg: Double = 14.0,
+    val isActive: Boolean = true,
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+@IgnoreExtraProperties
+data class PersonaStageData(
+    @DocumentId val id: String = "adult",
+    val userId: String = "",
+    val stageId: String = "adult",
+    val stageLabel: String = "Adult",
+    val focusGoal: String = "",
+    val primaryMetricLabel: String = "Weekly Milestones",
+    val primaryMetricValue: Double = 0.0,
+    val primaryMetricTarget: Double = 10.0,
+    val pinnedTopics: List<String> = emptyList(),
+    val completedTaskIds: List<String> = emptyList(),
+    val customNote: String = "",
+    val stageScoreOrXp: Long = 100L,
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+)
+
+fun normalizePersonaStageId(rawRoleOrStage: String): String {
+    val lower = rawRoleOrStage.trim().lowercase()
+    return when {
+        lower.contains("kid") || lower.contains("child") -> "kid"
+        lower.contains("teen") -> "teen"
+        lower.contains("student") -> "student"
+        lower.contains("business") || lower.contains("founder") -> "business"
+        lower.contains("veteran") -> "veteran"
+        else -> "adult"
+    }
+}
+
+fun buildDefaultPersonaStageData(
+    stageId: String,
+    userId: String = "local_user"
+): PersonaStageData {
+    val normalized = normalizePersonaStageId(stageId)
+    return when (normalized) {
+        "kid" -> PersonaStageData(
+            id = "kid",
+            userId = userId,
+            stageId = "kid",
+            stageLabel = "Kid",
+            focusGoal = "Finish 5 Solar System & Block Coding Quests",
+            primaryMetricLabel = "STEM Missions Completed",
+            primaryMetricValue = 2.0,
+            primaryMetricTarget = 5.0,
+            pinnedTopics = listOf("Solar Quest & Space", "Block Coding 101"),
+            completedTaskIds = listOf("kid_task_1"),
+            customNote = "Building a 3D rocket ship and learning how planets orbit!",
+            stageScoreOrXp = 180L
+        )
+        "teen" -> PersonaStageData(
+            id = "teen",
+            userId = userId,
+            stageId = "teen",
+            stageLabel = "Teen",
+            focusGoal = "Log 20 Volunteer Hours & Ship Hackathon Demo",
+            primaryMetricLabel = "Service Hours Logged",
+            primaryMetricValue = 8.0,
+            primaryMetricTarget = 20.0,
+            pinnedTopics = listOf("Kotlin & Compose", "Scholarship Roadmap"),
+            completedTaskIds = listOf("teen_task_1"),
+            customNote = "Working on my first Jetpack Compose app and library volunteer shifts.",
+            stageScoreOrXp = 240L
+        )
+        "student" -> PersonaStageData(
+            id = "student",
+            userId = userId,
+            stageId = "student",
+            stageLabel = "Student",
+            focusGoal = "Submit FAFSA Priority Aid & Complete Midterm Prep",
+            primaryMetricLabel = "Study Focus Hours",
+            primaryMetricValue = 12.0,
+            primaryMetricTarget = 25.0,
+            pinnedTopics = listOf("FAFSA & Pell Grants", "Academic Research"),
+            completedTaskIds = listOf("student_task_1"),
+            customNote = "Reviewing flashcards and organizing summer internship applications.",
+            stageScoreOrXp = 320L
+        )
+        "business" -> PersonaStageData(
+            id = "business",
+            userId = userId,
+            stageId = "business",
+            stageLabel = "Business",
+            focusGoal = "Finalize SBA Microloan Packet & Launch Q4 Storefront",
+            primaryMetricLabel = "Capital Readiness Score",
+            primaryMetricValue = 65.0,
+            primaryMetricTarget = 100.0,
+            pinnedTopics = listOf("SBA 7(a) Capital", "LLC Formation & EIN"),
+            completedTaskIds = listOf("biz_task_1"),
+            customNote = "Preparing operating cashflow forecast and supplier delivery schedule.",
+            stageScoreOrXp = 410L
+        )
+        "veteran" -> PersonaStageData(
+            id = "veteran",
+            userId = userId,
+            stageId = "veteran",
+            stageLabel = "Veteran",
+            focusGoal = "Complete PACT Act Screening & GI Bill Housing Verification",
+            primaryMetricLabel = "Transition Steps Done",
+            primaryMetricValue = 3.0,
+            primaryMetricTarget = 6.0,
+            pinnedTopics = listOf("PACT Act & VA Health", "Post-9/11 GI Bill"),
+            completedTaskIds = listOf("vet_task_1"),
+            customNote = "Connected with local DAV peer mentor and verified clinic appointment.",
+            stageScoreOrXp = 450L
+        )
+        else -> PersonaStageData(
+            id = "adult",
+            userId = userId,
+            stageId = "adult",
+            stageLabel = "Adult",
+            focusGoal = "Build 3-Month Emergency Fund & Weekly Wellness Routine",
+            primaryMetricLabel = "Stability Check-Ins",
+            primaryMetricValue = 4.0,
+            primaryMetricTarget = 10.0,
+            pinnedTopics = listOf("211 Housing & Relief", "Smart Auto Finance"),
+            completedTaskIds = listOf("adult_task_1"),
+            customNote = "Tracking monthly savings contributions and family schedule balance.",
+            stageScoreOrXp = 290L
+        )
+    }
+}
 
 fun buildDefaultStudentCareerMilestones(userId: String = "local_user"): List<CareerMilestone> = listOf(
     CareerMilestone(

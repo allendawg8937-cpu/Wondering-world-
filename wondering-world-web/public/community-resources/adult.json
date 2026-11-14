@@ -1,0 +1,67 @@
+{
+  "personaId": "adult",
+  "personaLabel": "Adult",
+  "headline": "Household Resilience, Career Growth & Long-Term Wealth",
+  "summary": "Balanced guidance on emergency reserves, mid-career mobility, preventative wellness, and neighborhood engagement.",
+  "advice": [
+    {
+      "id": "adt-adv-1",
+      "title": "Build a 3-to-6 Month Liquid Runway",
+      "guidance": "Keep household emergency savings in a separate high-liquidity account with automated payday transfers.",
+      "actionStep": "Verify your emergency fund percentage inside Finance Goals.",
+      "category": "Finance"
+    },
+    {
+      "id": "adt-adv-2",
+      "title": "Quarterly Career & Skill Audit",
+      "guidance": "Dedicate two hours each quarter to updating certifications, measurable wins, and mentor check-ins.",
+      "actionStep": "Identify one high-leverage skill to sharpen over the next 90 days.",
+      "category": "Career"
+    },
+    {
+      "id": "adt-adv-3",
+      "title": "Protect Daily Recovery Blocks",
+      "guidance": "Consistent 30-minute movement and screen-free meals improve cognitive stamina for work and family alike.",
+      "actionStep": "Schedule three recurring wellness blocks on your weekly calendar.",
+      "category": "Wellness"
+    }
+  ],
+  "links": [
+    {
+      "id": "adt-lnk-1",
+      "title": "CFPB Consumer Financial Tools",
+      "description": "Independent calculators and checklists for emergency funds, mortgages, and retirement readiness.",
+      "url": "https://www.consumerfinance.gov/consumer-tools/",
+      "provider": "Consumer Financial Protection Bureau",
+      "category": "Finance",
+      "isExternal": true
+    },
+    {
+      "id": "adt-lnk-2",
+      "title": "MyHealthfinder Preventative Wellness",
+      "description": "Personalized preventative screenings, nutrition, and family wellness recommendations.",
+      "url": "https://health.gov/myhealthfinder",
+      "provider": "U.S. Department of Health & Human Services",
+      "category": "Wellness",
+      "isExternal": true
+    },
+    {
+      "id": "adt-lnk-3",
+      "title": "Coursera Career Academy & Skills",
+      "description": "Flexible professional certificates and upskilling courses across technology and leadership.",
+      "url": "https://www.coursera.org/",
+      "provider": "Coursera",
+      "category": "Career",
+      "isExternal": true
+    },
+    {
+      "id": "adt-lnk-4",
+      "title": "Household Savings Snapshot",
+      "description": "Monitor emergency, travel, and home-office goals in one place.",
+      "url": "/finance/goals",
+      "provider": "Wondering World",
+      "category": "Finance",
+      "isExternal": false
+    }
+  ]
+}

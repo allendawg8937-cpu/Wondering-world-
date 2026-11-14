@@ -1,0 +1,67 @@
+{
+  "personaId": "kid",
+  "personaLabel": "Kid",
+  "headline": "Curated Discovery, Safety & Playful Learning",
+  "summary": "Hands-on STEM adventures, creative reading guides, and family-friendly digital habits built for young explorers.",
+  "advice": [
+    {
+      "id": "kid-adv-1",
+      "title": "Build a 20-Minute Curiosity Routine",
+      "guidance": "Pick one hands-on puzzle, nature observation, or science experiment each afternoon before screen playtime.",
+      "actionStep": "Write down one question you want to explore today and test it with a parent or guardian.",
+      "category": "Education"
+    },
+    {
+      "id": "kid-adv-2",
+      "title": "Three-Jar Allowance Habit",
+      "guidance": "Split weekly chore or gift money into Spend, Save, and Share jars to see small goals grow visually.",
+      "actionStep": "Drop your next coins into the Save jar toward a favorite book or craft kit.",
+      "category": "Finance"
+    },
+    {
+      "id": "kid-adv-3",
+      "title": "Kind & Safe Online Play",
+      "guidance": "Keep full names, home addresses, and school details private, and ask a trusted adult before joining any new game.",
+      "actionStep": "Review your favorite game privacy settings together with a family member.",
+      "category": "Support"
+    }
+  ],
+  "links": [
+    {
+      "id": "kid-lnk-1",
+      "title": "Khan Academy Kids",
+      "description": "Free interactive math, reading, and social-emotional learning activities for young learners.",
+      "url": "https://learn.khanacademy.org/khan-academy-kids/",
+      "provider": "Khan Academy",
+      "category": "Education",
+      "isExternal": true
+    },
+    {
+      "id": "kid-lnk-2",
+      "title": "NASA Kids' Club",
+      "description": "Age-friendly space missions, astronomy games, and real rover stories from NASA.",
+      "url": "https://www.nasa.gov/learning-resources/nasa-kids-club/",
+      "provider": "NASA",
+      "category": "Education",
+      "isExternal": true
+    },
+    {
+      "id": "kid-lnk-3",
+      "title": "Common Sense Media Family Guides",
+      "description": "Kid-safe media ratings and family digital citizenship checklists.",
+      "url": "https://www.commonsensemedia.org/",
+      "provider": "Common Sense Media",
+      "category": "Support",
+      "isExternal": true
+    },
+    {
+      "id": "kid-lnk-4",
+      "title": "Savings Goals Tracker",
+      "description": "Track allowance and kid-friendly savings milestones inside Wondering World.",
+      "url": "/finance/goals",
+      "provider": "Wondering World",
+      "category": "Finance",
+      "isExternal": false
+    }
+  ]
+}

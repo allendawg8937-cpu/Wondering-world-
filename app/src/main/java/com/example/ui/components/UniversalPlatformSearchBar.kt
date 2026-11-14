@@ -75,7 +75,7 @@ data class UniversalSearchResultItem(
     val targetTab: DashboardTab
 )
 
-private val BUILT_IN_SEARCHABLE_INDEX = listOf(
+internal val BUILT_IN_SEARCHABLE_INDEX = listOf(
     UniversalSearchResultItem(
         id = "usr_1",
         title = "Marcus Vance • Veteran Mentor",

@@ -5,6 +5,7 @@ import com.example.data.model.UserProfile
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -72,7 +73,7 @@ class WonderingWorldRepositoryRuleTest : FirestoreEmulatorTestBase() {
     }
 
     @Test
-    fun getUserProfile_crossUserAccess_failsWithPermissionDenied() = runBlocking {
+    fun saveUserProfile_crossUserWriteAndUnauthRead_failWithPermissionDenied() = runBlocking {
         val aliceUid = signInTestUser(ALICE_EMAIL)
         val aliceRepo = WonderingWorldRepository(firestore)
         withTimeout(DEFAULT_TIMEOUT_MS) {
@@ -89,11 +90,26 @@ class WonderingWorldRepositoryRuleTest : FirestoreEmulatorTestBase() {
             ).getOrThrow()
         }
 
+        // Bob (signed in) cannot overwrite Alice's profile document directly
         signInTestUser(BOB_EMAIL)
-        val bobRepo = WonderingWorldRepository(firestore)
         try {
-            withTimeout(DEFAULT_TIMEOUT_MS) { bobRepo.getUserProfile(aliceUid).getOrThrow() }
+            withTimeout(DEFAULT_TIMEOUT_MS) {
+                firestore.collection("users")
+                    .document(aliceUid)
+                    .update("displayName", "Bob Overwrite")
+                    .await()
+            }
             fail("Expected FirebaseFirestoreException PERMISSION_DENIED")
+        } catch (e: FirebaseFirestoreException) {
+            assertEquals(FirebaseFirestoreException.Code.PERMISSION_DENIED, e.code)
+        }
+
+        // Unauthenticated client cannot read Alice's profile document
+        auth.signOut()
+        val unauthRepo = WonderingWorldRepository(firestore)
+        try {
+            withTimeout(DEFAULT_TIMEOUT_MS) { unauthRepo.getUserProfile(aliceUid).getOrThrow() }
+            fail("Expected FirebaseFirestoreException PERMISSION_DENIED for unauthenticated read")
         } catch (e: FirebaseFirestoreException) {
             assertEquals(FirebaseFirestoreException.Code.PERMISSION_DENIED, e.code)
         }

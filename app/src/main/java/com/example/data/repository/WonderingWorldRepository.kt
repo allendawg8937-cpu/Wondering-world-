@@ -2,14 +2,18 @@ package com.example.data.repository
 
 import android.content.Context
 import com.example.R
+import com.example.data.model.BlockedUser
 import com.example.data.model.BudgetEntry
 import com.example.data.model.CareerMilestone
 import com.example.data.model.Friend
 import com.example.data.model.FriendRequest
+import com.example.data.model.PersonaStageData
+import com.example.data.model.Profile3DConfig
 import com.example.data.model.UserInteraction
 import com.example.data.model.UserProfile
 import com.example.data.model.WallPost
 import com.example.data.model.buildDefaultStudentCareerMilestones
+import com.example.data.model.normalizePersonaStageId
 import com.example.data.remote.OperationType
 import com.example.data.remote.handleFirestoreError
 import com.google.firebase.Firebase
@@ -96,7 +100,7 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
         val uid = requireUserId()
         val docRef = db.collection("users").document(uid)
         val sanitizedName = profile.displayName.trim().ifEmpty { "Wondering Explorer" }.take(60)
-        val sanitizedRole = if (profile.role in listOf("veteran", "business", "creator", "adult", "student")) {
+        val sanitizedRole = if (profile.role in listOf("veteran", "business", "creator", "adult", "student", "kid", "teen")) {
             profile.role
         } else {
             "adult"
@@ -723,6 +727,427 @@ class WonderingWorldRepository(private val db: FirebaseFirestore) {
             throw e
         } catch (e: Exception) {
             handleFirestoreError(e, OperationType.WRITE, "users/$uid/career_milestones")
+            throw e
+        }
+    }
+
+    // --- 3D Profile Customizer Configurations (Firestore Subcollection) ---
+
+    fun observeProfile3DConfigs(userId: String): Flow<List<Profile3DConfig>> = flow {
+        val path = "users/$userId/profile_3d_configs"
+        emitAll(
+            db.collection("users").document(userId).collection("profile_3d_configs")
+                .whereEqualTo("userId", userId)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        Profile3DConfig::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedByDescending { it.updatedAt ?: it.createdAt ?: Timestamp(0, 0) }
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun getProfile3DConfig(
+        userId: String,
+        configId: String = "active"
+    ): Result<Profile3DConfig?> = runCatching {
+        val safeConfigId = configId.trim().ifEmpty { "active" }.take(100)
+        val docRef = db.collection("users").document(userId)
+            .collection("profile_3d_configs").document(safeConfigId)
+        try {
+            val snapshot = docRef.get().await()
+            if (snapshot.exists()) {
+                snapshot.toObject<Profile3DConfig>(
+                    DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                )
+            } else {
+                null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.GET, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun saveProfile3DConfig(config: Profile3DConfig): Result<String> = runCatching {
+        val uid = requireUserId()
+        val safeDocId = config.id.trim().replace("/", "_").ifEmpty { "active" }.take(100)
+        val docRef = db.collection("users").document(uid)
+            .collection("profile_3d_configs").document(safeDocId)
+
+        val validBaseModels = mapOf(
+            "cyber_astronaut" to "Cyber Astronaut",
+            "holo_scholar" to "Holo Scholar",
+            "cosmic_pioneer" to "Cosmic Pioneer",
+            "neon_tactician" to "Neon Tactician",
+            "eco_guardian" to "Eco Guardian",
+            "street_innovator" to "Street Innovator"
+        )
+        val safeBaseId = if (config.baseModelId in validBaseModels) config.baseModelId else "cyber_astronaut"
+        val safeBaseName = (config.baseModelName.trim().ifEmpty { validBaseModels[safeBaseId] ?: "Cyber Astronaut" }).take(60)
+        val safeConfigName = config.configName.trim().ifEmpty { "$safeBaseName Build" }.take(60)
+
+        fun sanitizeHex(raw: String, fallback: String): String {
+            val cleaned = raw.trim()
+            return if (Regex("^#[0-9a-fA-F]{6,8}$").matches(cleaned)) cleaned else fallback
+        }
+
+        val validHeadgear = setOf("head_none", "head_crown", "head_halo", "head_headphones", "head_helmet", "head_beret")
+        val validEyewear = setOf("eye_none", "eye_visor", "eye_shades", "eye_hud", "eye_pixel")
+        val validAura = setOf("aura_none", "aura_drones", "aura_wings", "aura_stars", "aura_shield")
+        val validRig = setOf("rig_none", "rig_pauldrons", "rig_cape", "rig_medallion", "rig_collar")
+
+        val safePrimaryHex = sanitizeHex(config.primaryColorHex, "#00E5FF")
+        val safeSecondaryHex = sanitizeHex(config.secondaryColorHex, "#FF2E93")
+        val safeAuraHex = sanitizeHex(config.auraColorHex, "#00E676")
+        val safeHeadgear = if (config.headgearId in validHeadgear) config.headgearId else "head_crown"
+        val safeEyewear = if (config.eyewearId in validEyewear) config.eyewearId else "eye_visor"
+        val safeAura = if (config.auraId in validAura) config.auraId else "aura_drones"
+        val safeRig = if (config.rigId in validRig) config.rigId else "rig_pauldrons"
+        val safeMetallic = config.metallicFinish.coerceIn(0.0, 1.0)
+        val safeScale = config.scaleFactor.coerceIn(0.6, 1.5)
+        val safeYaw = config.turntableYawDeg.coerceIn(-180.0, 360.0)
+
+        try {
+            val existing = docRef.get().await()
+            if (existing.exists()) {
+                val updatePayload = mapOf(
+                    "configName" to safeConfigName,
+                    "baseModelId" to safeBaseId,
+                    "baseModelName" to safeBaseName,
+                    "primaryColorHex" to safePrimaryHex,
+                    "secondaryColorHex" to safeSecondaryHex,
+                    "auraColorHex" to safeAuraHex,
+                    "headgearId" to safeHeadgear,
+                    "eyewearId" to safeEyewear,
+                    "auraId" to safeAura,
+                    "rigId" to safeRig,
+                    "metallicFinish" to safeMetallic,
+                    "scaleFactor" to safeScale,
+                    "autoRotate" to config.autoRotate,
+                    "turntableYawDeg" to safeYaw,
+                    "isActive" to config.isActive,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                docRef.update(updatePayload).await()
+            } else {
+                val createPayload = mapOf(
+                    "userId" to uid,
+                    "configName" to safeConfigName,
+                    "baseModelId" to safeBaseId,
+                    "baseModelName" to safeBaseName,
+                    "primaryColorHex" to safePrimaryHex,
+                    "secondaryColorHex" to safeSecondaryHex,
+                    "auraColorHex" to safeAuraHex,
+                    "headgearId" to safeHeadgear,
+                    "eyewearId" to safeEyewear,
+                    "auraId" to safeAura,
+                    "rigId" to safeRig,
+                    "metallicFinish" to safeMetallic,
+                    "scaleFactor" to safeScale,
+                    "autoRotate" to config.autoRotate,
+                    "turntableYawDeg" to safeYaw,
+                    "isActive" to config.isActive,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                docRef.set(createPayload).await()
+            }
+            docRef.id
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun deleteProfile3DConfig(configId: String): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        require(configId.isNotBlank()) { "Config ID must not be blank" }
+        val safeDocId = configId.trim().replace("/", "_").take(100)
+        val docRef = db.collection("users").document(uid)
+            .collection("profile_3d_configs").document(safeDocId)
+        try {
+            docRef.delete().await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docRef.path)
+            throw e
+        }
+    }
+
+    // --- Persona Stage-Specific Dashboard Data (Firestore Subcollection) ---
+
+    fun observeAllPersonaStageData(userId: String): Flow<List<PersonaStageData>> = flow {
+        val path = "users/$userId/persona_stage_data"
+        emitAll(
+            db.collection("users").document(userId).collection("persona_stage_data")
+                .whereEqualTo("userId", userId)
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        PersonaStageData::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    )
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun getPersonaStageData(
+        userId: String,
+        stageId: String
+    ): Result<PersonaStageData?> = runCatching {
+        val safeStageId = normalizePersonaStageId(stageId)
+        val docRef = db.collection("users").document(userId)
+            .collection("persona_stage_data").document(safeStageId)
+        try {
+            val snapshot = docRef.get().await()
+            if (snapshot.exists()) {
+                snapshot.toObject<PersonaStageData>(
+                    DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                )
+            } else {
+                null
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.GET, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun savePersonaStageData(data: PersonaStageData): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val safeStageId = normalizePersonaStageId(data.stageId.ifBlank { data.id })
+        val stageLabel = when (safeStageId) {
+            "kid" -> "Kid"
+            "teen" -> "Teen"
+            "student" -> "Student"
+            "business" -> "Business"
+            "veteran" -> "Veteran"
+            else -> "Adult"
+        }
+        val docRef = db.collection("users").document(uid)
+            .collection("persona_stage_data").document(safeStageId)
+
+        val safeGoal = data.focusGoal.trim().take(140)
+        val safeMetricLabel = data.primaryMetricLabel.trim().ifEmpty { "Progress" }.take(60)
+        val safeMetricValue = data.primaryMetricValue.coerceIn(0.0, 10000000.0)
+        val safeMetricTarget = data.primaryMetricTarget.coerceIn(1.0, 10000000.0)
+        val safeTopics = data.pinnedTopics.map { it.trim().take(50) }.filter { it.isNotEmpty() }.distinct().take(12)
+        val safeTasks = data.completedTaskIds.map { it.trim().take(50) }.filter { it.isNotEmpty() }.distinct().take(20)
+        val safeNote = data.customNote.trim().take(400)
+        val safeXp = data.stageScoreOrXp.coerceIn(0L, 1000000L)
+
+        try {
+            val existing = docRef.get().await()
+            if (existing.exists()) {
+                val updatePayload = mapOf(
+                    "stageLabel" to stageLabel,
+                    "focusGoal" to safeGoal,
+                    "primaryMetricLabel" to safeMetricLabel,
+                    "primaryMetricValue" to safeMetricValue,
+                    "primaryMetricTarget" to safeMetricTarget,
+                    "pinnedTopics" to safeTopics,
+                    "completedTaskIds" to safeTasks,
+                    "customNote" to safeNote,
+                    "stageScoreOrXp" to safeXp,
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                docRef.update(updatePayload).await()
+            } else {
+                val createPayload = mapOf(
+                    "userId" to uid,
+                    "stageId" to safeStageId,
+                    "stageLabel" to stageLabel,
+                    "focusGoal" to safeGoal,
+                    "primaryMetricLabel" to safeMetricLabel,
+                    "primaryMetricValue" to safeMetricValue,
+                    "primaryMetricTarget" to safeMetricTarget,
+                    "pinnedTopics" to safeTopics,
+                    "completedTaskIds" to safeTasks,
+                    "customNote" to safeNote,
+                    "stageScoreOrXp" to safeXp,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+                docRef.set(createPayload).await()
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.WRITE, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun deletePersonaStageData(stageId: String): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val safeStageId = normalizePersonaStageId(stageId)
+        val docRef = db.collection("users").document(uid)
+            .collection("persona_stage_data").document(safeStageId)
+        try {
+            docRef.delete().await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docRef.path)
+            throw e
+        }
+    }
+
+    // --- Blocked Users & Account Deletion (Privacy & Safety Controls) ---
+
+    fun observeBlockedUsers(userId: String): Flow<List<BlockedUser>> = flow {
+        val path = "users/$userId/blocked_users"
+        emitAll(
+            db.collection("users").document(userId).collection("blocked_users")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        BlockedUser::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedByDescending { it.createdAt ?: Timestamp(0, 0) }
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == userId) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun blockUser(
+        blockedUserId: String,
+        blockedDisplayName: String,
+        reason: String = "Boundary Preference"
+    ): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val cleanName = blockedDisplayName.trim().ifEmpty { "Community Member" }.take(60)
+        val rawId = blockedUserId.trim().ifEmpty {
+            cleanName.lowercase().replace(Regex("[^a-z0-9_-]"), "_").take(50)
+        }
+        val safeBlockedId = rawId.replace("/", "_").replace("\\", "_").take(100)
+        require(safeBlockedId.isNotBlank()) { "Blocked user ID cannot be blank" }
+        require(safeBlockedId != uid) { "You cannot block your own account" }
+        val safeReason = reason.trim().ifEmpty { "Boundary Preference" }.take(100)
+
+        val docRef = db.collection("users").document(uid)
+            .collection("blocked_users").document(safeBlockedId)
+        val payload = mapOf(
+            "userId" to uid,
+            "blockedUserId" to safeBlockedId,
+            "blockedDisplayName" to cleanName,
+            "reason" to safeReason,
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+        try {
+            docRef.set(payload).await()
+            // Also remove from friends subcollection if present
+            val friendRef = db.collection("users").document(uid)
+                .collection("friends").document(safeBlockedId)
+            runCatching { friendRef.delete().await() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun unblockUser(blockedUserId: String): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val safeBlockedId = blockedUserId.trim().replace("/", "_").replace("\\", "_").take(100)
+        require(safeBlockedId.isNotBlank()) { "Blocked user ID must not be blank" }
+        val docRef = db.collection("users").document(uid)
+            .collection("blocked_users").document(safeBlockedId)
+        try {
+            docRef.delete().await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docRef.path)
+            throw e
+        }
+    }
+
+    suspend fun deleteUserAccountData(): Result<Unit> = runCatching {
+        val uid = requireUserId()
+        val userDocRef = db.collection("users").document(uid)
+        val subcollections = listOf(
+            "posts",
+            "budget_entries",
+            "interactions",
+            "career_milestones",
+            "profile_3d_configs",
+            "persona_stage_data",
+            "friends",
+            "blocked_users"
+        )
+        try {
+            for (subcollectionName in subcollections) {
+                val docs = userDocRef.collection(subcollectionName).get().await().documents
+                if (docs.isNotEmpty()) {
+                    docs.chunked(400).forEach { chunk ->
+                        val batch = db.batch()
+                        chunk.forEach { snap -> batch.delete(snap.reference) }
+                        batch.commit().await()
+                    }
+                }
+            }
+            // Best-effort cleanup of comments authored by this user
+            runCatching {
+                val userComments = db.collection("video_reel_comments")
+                    .whereEqualTo("userId", uid)
+                    .get()
+                    .await()
+                    .documents
+                userComments.chunked(400).forEach { chunk ->
+                    val batch = db.batch()
+                    chunk.forEach { snap -> batch.delete(snap.reference) }
+                    batch.commit().await()
+                }
+            }
+            // Finally delete the user's root profile document
+            userDocRef.delete().await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, userDocRef.path)
             throw e
         }
     }

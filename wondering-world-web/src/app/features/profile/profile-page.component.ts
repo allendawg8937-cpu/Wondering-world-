@@ -1,31 +1,47 @@
 // src/app/features/profile/profile-page.component.ts
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import {
   ReportReason,
   ReportTargetType,
 } from '../../data-access/models/content-report.model';
+import { AvatarStudioSavedEvent } from '../../data-access/models/photo-studio.model';
 import { UserProfile } from '../../data-access/models/user-profile.model';
 import { ContentReportingService } from '../../data-access/services/content-reporting.service';
 import { ProfileService } from '../../data-access/services/profile.service';
+import {
+  PhotoStudioComponent,
+  STUDIO_FILTERS,
+  STUDIO_FRAMES,
+} from './components/photo-studio.component';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PhotoStudioComponent],
   template: `
     <section *ngIf="user">
       <h1>Profile</h1>
 
       <div class="profile-card">
-        <img [src]="user.avatarUrl" [alt]="user.displayName" />
+        <img
+          [src]="user.avatarUrl"
+          [alt]="user.displayName"
+          [style.filter]="activeFilterCss()"
+          [style.border]="activeFrameBorder()"
+          [style.box-shadow]="activeFrameShadow()"
+          [class.polaroid-avatar]="user.avatarFrameId === 'polaroid'"
+        />
         <div>
           <h2>{{ user.displayName }}</h2>
           <p>{{ user.email }}</p>
           <p>{{ user.bio }}</p>
         </div>
       </div>
+
+      <app-photo-studio (avatarSaved)="onAvatarSaved($event)" />
 
       <div class="report-card">
         <h3>Report a Post or Profile for Administrator Review</h3>
@@ -143,6 +159,11 @@ import { ProfileService } from '../../data-access/services/profile.service';
         height: 88px;
         border-radius: 50%;
         object-fit: cover;
+        transition: filter 0.25s ease, border 0.25s ease, box-shadow 0.25s ease;
+      }
+
+      img.polaroid-avatar {
+        border-radius: 14px;
       }
 
       .report-controls {
@@ -233,6 +254,7 @@ import { ProfileService } from '../../data-access/services/profile.service';
 })
 export class ProfilePageComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly reportingService = inject(ContentReportingService);
 
   user?: UserProfile;
@@ -243,9 +265,38 @@ export class ProfilePageComponent implements OnInit {
   confirmationMessage = '';
 
   ngOnInit(): void {
-    this.profileService.getCurrentUser().subscribe(user => {
-      this.user = user;
-    });
+    this.profileService
+      .observeCurrentUser()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
+        this.user = user;
+      });
+  }
+
+  activeFilterCss(): string {
+    const id = this.user?.avatarFilterId ?? 'original';
+    return STUDIO_FILTERS.find(f => f.id === id)?.cssFilter ?? 'none';
+  }
+
+  activeFrameBorder(): string {
+    const id = this.user?.avatarFrameId ?? 'none';
+    return STUDIO_FRAMES.find(f => f.id === id)?.borderStyle ?? '2px solid #334155';
+  }
+
+  activeFrameShadow(): string {
+    const id = this.user?.avatarFrameId ?? 'none';
+    return STUDIO_FRAMES.find(f => f.id === id)?.glowShadow ?? 'none';
+  }
+
+  onAvatarSaved(event: AvatarStudioSavedEvent): void {
+    if (this.user) {
+      this.user = {
+        ...this.user,
+        avatarUrl: event.avatarUrl,
+        avatarFilterId: event.filterId,
+        avatarFrameId: event.frameId,
+      };
+    }
   }
 
   async submitFlag(): Promise<void> {

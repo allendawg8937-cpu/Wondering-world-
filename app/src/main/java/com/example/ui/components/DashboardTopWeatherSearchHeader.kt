@@ -37,7 +37,9 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GroupAdd
@@ -69,6 +71,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -709,6 +712,7 @@ fun DashboardTopWeatherSearchHeader(
     onOpenPhoneSystemSettings: () -> Unit,
     onSignOut: () -> Unit,
     onNavigateToFriendsDiscovery: () -> Unit = {},
+    onOpenInstallPublishHub: () -> Unit = {},
     onLocationUpdated: (String) -> Unit = {},
     discoveredUsers: List<UserProfile> = emptyList(),
     communityConnections: List<CommunityConnectionCard> = emptyList(),
@@ -718,6 +722,7 @@ fun DashboardTopWeatherSearchHeader(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var showSearchBar by rememberSaveable { mutableStateOf(false) }
     var showSearchFilters by remember { mutableStateOf(false) }
     var searchMode by remember { mutableStateOf("COMMUNITY_MEMBERS") }
     var friendRequestSentTo by remember { mutableStateOf<String?>(null) }
@@ -957,12 +962,42 @@ fun DashboardTopWeatherSearchHeader(
                     }
                 }
 
-                // Compact Action Icons
+                // Compact Action Icons (Search toggle, Install/Publish, Settings, Edit, Sign Out)
                 Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                    IconButton(
+                        onClick = { showSearchBar = !showSearchBar },
+                        modifier = Modifier
+                            .size(34.dp)
+                            .testTag("dashboard_toggle_search_button")
+                    ) {
+                        Icon(
+                            imageVector = if (showSearchBar || universalSearchQuery.isNotBlank()) {
+                                Icons.Default.Close
+                            } else {
+                                Icons.Default.Search
+                            },
+                            contentDescription = "Toggle Search",
+                            tint = if (showSearchBar) NeonPink else HoloCyan,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onOpenInstallPublishHub,
+                        modifier = Modifier
+                            .size(34.dp)
+                            .testTag("dashboard_install_publish_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = "Install, Download & Publish",
+                            tint = CyberEmerald,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                     IconButton(
                         onClick = onOpenPhoneSystemSettings,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("dashboard_phone_settings_button")
                     ) {
                         Icon(
@@ -975,7 +1010,7 @@ fun DashboardTopWeatherSearchHeader(
                     IconButton(
                         onClick = onNavigateToEditProfile,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("dashboard_edit_profile_button")
                     ) {
                         Icon(
@@ -986,22 +1021,9 @@ fun DashboardTopWeatherSearchHeader(
                         )
                     }
                     IconButton(
-                        onClick = onNavigateToFriendsDiscovery,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .testTag("dashboard_find_friends_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.GroupAdd,
-                            contentDescription = "Find Friends",
-                            tint = CyberEmerald,
-                            modifier = Modifier.size(17.dp)
-                        )
-                    }
-                    IconButton(
                         onClick = onSignOut,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .testTag("dashboard_sign_out_button")
                     ) {
                         Icon(
@@ -1014,7 +1036,9 @@ fun DashboardTopWeatherSearchHeader(
                 }
             }
 
-            // Sleek 6D Top Search Bar with Firestore-Indexed Community Member Lookup & Universal Web Search
+            // Collapsible Search Bar (hidden by default so page content appears higher up)
+            AnimatedVisibility(visible = showSearchBar || universalSearchQuery.isNotBlank()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val matchedLocalMembers = remember(universalSearchQuery, communityConnections) {
                 val q = universalSearchQuery.trim()
                 if (q.isEmpty()) {
@@ -1416,6 +1440,8 @@ fun DashboardTopWeatherSearchHeader(
                         }
                     }
                 }
+            }
+            }
             }
         }
     }

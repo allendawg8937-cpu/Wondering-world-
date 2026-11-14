@@ -51,6 +51,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -105,6 +106,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.data.model.BlockedUser
 import com.example.data.model.Friend
 import com.example.data.model.FriendRequest
 import com.example.data.model.UserProfile
@@ -113,6 +115,7 @@ import com.example.ui.components.OFFICIAL_PLATFORM_CLOUD_URL
 import com.example.ui.theme.CyberEmerald
 import com.example.ui.theme.HoloCyan
 import com.example.ui.theme.NeonPink
+import com.example.ui.theme.RosePulse
 import com.example.ui.theme.SolarAmber
 import java.security.MessageDigest
 import java.util.Locale
@@ -136,10 +139,19 @@ fun FriendsAndDiscoveryScreen(
     onAcceptRequest: (FriendRequest) -> Unit,
     onDeclineRequest: (String) -> Unit,
     onShowReportDialog: (String, String) -> Unit = { _, _ -> },
+    blockedUsers: List<BlockedUser> = emptyList(),
+    onBlockUser: (targetUserId: String, targetDisplayName: String, reason: String) -> Unit = { _, _, _ -> },
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val blockedIds = remember(blockedUsers) { blockedUsers.map { it.blockedUserId.lowercase() }.toSet() }
+    val blockedNames = remember(blockedUsers) { blockedUsers.map { it.blockedDisplayName.trim().lowercase() }.toSet() }
+    val visibleDiscoveredUsers = remember(discoveredUsers, blockedIds, blockedNames) {
+        discoveredUsers.filterNot { user ->
+            user.userId.lowercase() in blockedIds || user.displayName.trim().lowercase() in blockedNames
+        }
+    }
     // Default to DISCOVERY ("Find Friends") so Find Friends & Share QR Code are immediately accessible
     var activeSubTab by remember { mutableStateOf("DISCOVERY") } // DISCOVERY, FRIENDS, REQUESTS
     var phoneInput by remember(myPhoneNumber) { mutableStateOf(myPhoneNumber) }
@@ -286,14 +298,20 @@ fun FriendsAndDiscoveryScreen(
             "FRIENDS" -> {
                 FriendsListSection(
                     state = friendsState,
+                    blockedIds = blockedIds,
+                    blockedNames = blockedNames,
                     onShowReportDialog = onShowReportDialog,
+                    onBlockFriend = { friend ->
+                        onBlockUser(friend.friendUserId, friend.displayName, "Blocked from Friends")
+                        statusFeedback = "🚫 Blocked ${friend.displayName}. Manage blocked users in Settings."
+                    },
                     onSwitchToFindFriends = { activeSubTab = "DISCOVERY" }
                 )
             }
             "DISCOVERY" -> {
                 DiscoverySection(
                     myUserProfile = myUserProfile,
-                    discoveredUsers = discoveredUsers,
+                    discoveredUsers = visibleDiscoveredUsers,
                     phoneInput = phoneInput,
                     onPhoneChange = { phoneInput = it },
                     onUpdatePhone = {
@@ -308,6 +326,10 @@ fun FriendsAndDiscoveryScreen(
                         statusFeedback = "Searching community index for '$query'..."
                     },
                     onReport = onShowReportDialog,
+                    onBlockUser = { user ->
+                        onBlockUser(user.userId, user.displayName, "Blocked from Discovery")
+                        statusFeedback = "🚫 Blocked ${user.displayName}. Manage blocked users in Settings."
+                    },
                     onSendRequest = { targetUid, targetName ->
                         onSendFriendRequest(targetUid, targetName)
                         statusFeedback = "✓ Sent friend request to $targetName!"
@@ -1109,7 +1131,10 @@ private fun QrScannerCameraPreviewBox(
 @Composable
 private fun FriendsListSection(
     state: UiState<List<Friend>>,
+    blockedIds: Set<String> = emptySet(),
+    blockedNames: Set<String> = emptySet(),
     onShowReportDialog: (String, String) -> Unit,
+    onBlockFriend: (Friend) -> Unit = {},
     onSwitchToFindFriends: () -> Unit
 ) {
     when (state) {
@@ -1117,7 +1142,11 @@ private fun FriendsListSection(
             CircularProgressIndicator()
         }
         is UiState.Success -> {
-            if (state.data.isEmpty()) {
+            val visibleFriends = state.data.filterNot { friend ->
+                friend.friendUserId.lowercase() in blockedIds ||
+                    friend.displayName.trim().lowercase() in blockedNames
+            }
+            if (visibleFriends.isEmpty()) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -1135,8 +1164,8 @@ private fun FriendsListSection(
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    state.data.forEach { friend ->
-                        FriendItem(friend, onShowReportDialog)
+                    visibleFriends.forEach { friend ->
+                        FriendItem(friend, onShowReportDialog, onBlockFriend)
                     }
                 }
             }
@@ -1155,6 +1184,7 @@ private fun DiscoverySection(
     onSyncContacts: () -> Unit,
     onSearch: (String) -> Unit,
     onReport: (String, String) -> Unit,
+    onBlockUser: (UserProfile) -> Unit,
     onSendRequest: (String, String) -> Unit,
     onQrStatusMessage: (String) -> Unit
 ) {
@@ -1290,7 +1320,7 @@ private fun DiscoverySection(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 discoveredUsers.forEach { user ->
-                    UserDiscoveryItem(user, onSendRequest, onReport)
+                    UserDiscoveryItem(user, onSendRequest, onReport, onBlockUser)
                 }
             }
         }
@@ -1323,7 +1353,11 @@ private fun RequestsSection(
 }
 
 @Composable
-private fun FriendItem(friend: Friend, onShowReportDialog: (String, String) -> Unit) {
+private fun FriendItem(
+    friend: Friend,
+    onShowReportDialog: (String, String) -> Unit,
+    onBlockFriend: (Friend) -> Unit = {}
+) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -1355,6 +1389,19 @@ private fun FriendItem(friend: Friend, onShowReportDialog: (String, String) -> U
                 modifier = Modifier.clickable { }
             )
             IconButton(
+                onClick = { onBlockFriend(friend) },
+                modifier = Modifier
+                    .size(32.dp)
+                    .testTag("block_friend_btn_${friend.friendUserId}")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Block,
+                    contentDescription = "Block ${friend.displayName}",
+                    tint = RosePulse.copy(alpha = 0.75f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            IconButton(
                 onClick = { onShowReportDialog(friend.friendUserId, "profile") },
                 modifier = Modifier.size(32.dp)
             ) {
@@ -1373,7 +1420,8 @@ private fun FriendItem(friend: Friend, onShowReportDialog: (String, String) -> U
 private fun UserDiscoveryItem(
     user: UserProfile,
     onSendRequest: (String, String) -> Unit,
-    onReport: (String, String) -> Unit
+    onReport: (String, String) -> Unit,
+    onBlockUser: (UserProfile) -> Unit = {}
 ) {
     Surface(
         shape = RoundedCornerShape(12.dp),
@@ -1398,6 +1446,19 @@ private fun UserDiscoveryItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(user.displayName, fontWeight = FontWeight.Bold)
                 Text(user.location, style = MaterialTheme.typography.labelSmall)
+            }
+            IconButton(
+                onClick = { onBlockUser(user) },
+                modifier = Modifier
+                    .size(32.dp)
+                    .testTag("block_discovered_btn_${user.userId}")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Block,
+                    contentDescription = "Block ${user.displayName}",
+                    tint = RosePulse.copy(alpha = 0.75f),
+                    modifier = Modifier.size(16.dp)
+                )
             }
             IconButton(
                 onClick = { onReport(user.userId, "profile") },
