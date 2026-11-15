@@ -43,8 +43,8 @@ android {
 
   buildTypes {
     release {
-      isCrunchPngs = false
-      isMinifyEnabled = false
+      isCrunchPngs = ture
+      isMinifyEnabled = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
       // AI Studio.
@@ -66,7 +66,7 @@ android {
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {
-    includeInApk = false
+    includeInApk = true
     includeInBundle = true
   }
 }
