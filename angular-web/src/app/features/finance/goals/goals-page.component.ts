@@ -45,8 +45,8 @@ import { FinanceService } from '../../../data-access/services/finance.service';
       }
 
       .goal {
-        background: #111827;
-        border: 1px solid #334155;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 16px;
         padding: 20px;
       }
@@ -60,7 +60,8 @@ import { FinanceService } from '../../../data-access/services/finance.service';
 
       .progress {
         height: 12px;
-        background: #1f2937;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
         border-radius: 999px;
         overflow: hidden;
         margin-bottom: 12px;
@@ -74,7 +75,7 @@ import { FinanceService } from '../../../data-access/services/finance.service';
 
       p {
         margin: 0;
-        color: #cbd5e1;
+        color: var(--text-secondary);
       }
     `,
   ],

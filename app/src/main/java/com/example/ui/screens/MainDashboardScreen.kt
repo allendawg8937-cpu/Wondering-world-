@@ -156,6 +156,7 @@ import com.example.data.model.Friend
 import com.example.data.model.FriendRequest
 import com.example.data.model.PersonalizedDailyInsight
 import com.example.data.model.ResourceDirectoryItem
+import com.example.data.model.SavedResource
 import com.example.data.model.UserInteraction
 import com.example.data.model.UserProfile
 import com.example.data.model.WallPost
@@ -167,6 +168,7 @@ import com.example.ui.DashboardTab
 import com.example.ui.SignUpFormState
 import com.example.ui.UiState
 import com.example.ui.UserIdeaProposal
+import com.example.ui.navigation.PlatformModuleDestination
 import androidx.compose.material.icons.filled.Newspaper
 import com.example.ui.components.AdaptiveUserLearningAiBotAndToolsCard
 import com.example.ui.components.AdultProfileDatingHubCard
@@ -179,6 +181,7 @@ import com.example.ui.components.CommunityMarketplaceCard
 import com.example.ui.components.ContentModerationSystemCard
 import com.example.ui.components.AchievementGamificationLeaderboardCard
 import com.example.ui.components.CreativePhotoStudioCard
+import com.example.ui.components.CustomMessengerIcon
 import com.example.ui.components.CustomProfileThemeCreatorSection
 import com.example.ui.components.DailyHoroscopesCosmicCard
 import com.example.ui.components.DashboardTopWeatherSearchHeader
@@ -189,6 +192,7 @@ import com.example.ui.components.FinancialLiteracyTrackerCard
 import com.example.ui.components.FinancialTipOfTheDayCard
 import com.example.ui.components.LifeStageAvatarSelectionGridCard
 import com.example.ui.components.Persona3DAvatarSelectionCard
+import com.example.ui.components.PersonaCommunityHubView
 import com.example.ui.components.PersonaProfileSystemCard
 import com.example.ui.components.PersonaSelectionComponent
 import com.example.ui.components.PersonalGrowthRechartsDashboard
@@ -210,6 +214,7 @@ import com.example.ui.components.PersonaDashboardComponent
 import com.example.ui.components.ProfileDownloadDataCard
 import com.example.ui.components.PublishedVideoReelsStore
 import com.example.ui.components.ResourceHubCard
+import com.example.ui.components.SavedResourcesProfileSection
 import com.example.ui.components.SettingsBlockUsersCard
 import com.example.ui.components.SettingsCodeOfConductCard
 import com.example.ui.components.SettingsDeleteAccountCard
@@ -397,12 +402,28 @@ fun MainDashboardScreen(
     onClearSettingsStatusBanner: () -> Unit = {},
     isDeletingAccount: Boolean = false,
     onDeleteAccountPermanently: () -> Unit = {},
+    savedResources: List<SavedResource> = emptyList(),
+    onToggleSaveResource: (
+        resourceId: String,
+        title: String,
+        subtitle: String,
+        badge: String,
+        url: String,
+        category: String,
+        stageId: String
+    ) -> Unit = { _, _, _, _, _, _, _ -> },
+    onRemoveSavedResource: (String) -> Unit = {},
+    onFetchStageCommunityPosts: suspend (String) -> Result<List<WallPost>> = { Result.success(emptyList()) },
+    onNavigateToModule: (PlatformModuleDestination) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var universalSearchQuery by remember { mutableStateOf("") }
     var showAllPagesSheet by rememberSaveable { mutableStateOf(false) }
     var showInstallPublishSheet by rememberSaveable { mutableStateOf(false) }
+    val savedResourceIds = remember(savedResources) {
+        savedResources.flatMap { listOf(it.resourceId, it.id) }.filter { it.isNotBlank() }.toSet()
+    }
 
     val blockedIdsSet = remember(blockedUsers) {
         blockedUsers.map { it.blockedUserId.lowercase() }.toSet()
@@ -592,14 +613,25 @@ fun MainDashboardScreen(
                     label = { Text("Studio", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
                     modifier = Modifier.testTag("tab_studio_arcade")
                 )
+                val messengerSelected = activeTab == DashboardTab.MESSAGING ||
+                    activeTab == DashboardTab.FRIENDS ||
+                    activeTab == DashboardTab.VIDEO_CHAT
+                val pendingRequestCount = (incomingRequestsState as? UiState.Success)?.data?.size ?: 3
                 NavigationBarItem(
-                    selected = activeTab == DashboardTab.FRIENDS ||
-                        activeTab == DashboardTab.MESSAGING ||
-                        activeTab == DashboardTab.VIDEO_CHAT,
-                    onClick = { onSelectTab(DashboardTab.FRIENDS) },
-                    icon = { Icon(Icons.Default.Group, contentDescription = "Friends & Chat") },
-                    label = { Text("Social", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
-                    modifier = Modifier.testTag("tab_friends")
+                    selected = messengerSelected,
+                    onClick = { onSelectTab(DashboardTab.MESSAGING) },
+                    icon = {
+                        CustomMessengerIcon(
+                            isSelected = messengerSelected,
+                            unreadCount = pendingRequestCount,
+                            accentColor = parseThemeHex(signUpForm.themeColorHex),
+                            iconSize = 26.dp,
+                            tagName = "custom_messenger_nav_icon",
+                            contentDesc = "Messenger & Adaptive Social"
+                        )
+                    },
+                    label = { Text("Messenger", style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                    modifier = Modifier.testTag("tab_messenger")
                 )
                 NavigationBarItem(
                     selected = activeTab == DashboardTab.FINANCE_GOALS ||
@@ -695,7 +727,7 @@ fun MainDashboardScreen(
                                 DashboardTab.STUDIO_ARCADE -> "🎬 Reels, Photo Studio & Arcade" to "Watch & make video reels, AI photo filters & games"
                                 DashboardTab.THEME_PROFILE -> "🎨 Profile & 3D Themes" to "3D avatars, custom themes & profile customization"
                                 DashboardTab.FRIENDS -> "👥 Friends & Discovery" to "Find members, manage requests & sync contacts"
-                                DashboardTab.MESSAGING -> "💬 Messages & Chat" to "Direct conversations & icebreakers"
+                                DashboardTab.MESSAGING -> "💬 Adaptive Messenger" to "Learns your interests, ranks your social feed & direct chats"
                                 DashboardTab.VIDEO_CHAT -> "📹 Video Chat & Calls" to "Live video rooms & face-to-face calls"
                                 DashboardTab.FINANCE_GOALS -> "💰 Wallet & Finance" to "Digital wallet, EqualCoins & savings goals"
                                 DashboardTab.RESOURCES -> "🎓 School, Jobs & Aid" to "Education portals, career tracks, 211 & VA aid"
@@ -839,6 +871,7 @@ fun MainDashboardScreen(
                                 ) {
                                     listOf(
                                         "STAGE" to "🎛️ My Stage",
+                                        "COMMUNITY_HUB" to "🌍 Stage Community",
                                         "FEED" to "🌐 Social Wall",
                                         "PAGES" to "🔗 All Links",
                                         "SETUP" to "🧭 3-Step Setup",
@@ -856,6 +889,90 @@ fun MainDashboardScreen(
                                             modifier = Modifier.testTag("home_section_link_${key.lowercase()}")
                                         )
                                     }
+                                }
+
+                                // Sealed-Class Module Navigation Bar (Main Dashboard -> Photo Studio / Financial Literacy / 18+ Sanctuary)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState())
+                                        .testTag("home_module_nav_strip"),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { onNavigateToModule(PlatformModuleDestination.PhotoStudio) },
+                                        shape = RoundedCornerShape(50),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        border = BorderStroke(1.dp, NeonPink.copy(alpha = 0.6f)),
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("launch_module_photo_studio")
+                                    ) {
+                                        Text("📸 Photo Studio Module", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onNavigateToModule(PlatformModuleDestination.FinancialLiteracy) },
+                                        shape = RoundedCornerShape(50),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        border = BorderStroke(1.dp, CyberEmerald.copy(alpha = 0.6f)),
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("launch_module_financial_literacy")
+                                    ) {
+                                        Text("💳 Financial Literacy Module", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onNavigateToModule(PlatformModuleDestination.AiBuiltInTool) },
+                                        shape = RoundedCornerShape(50),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        border = BorderStroke(1.dp, HoloCyan.copy(alpha = 0.7f)),
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("launch_module_ai_built_in_tool")
+                                    ) {
+                                        Text("✨ Built-In AI Tool", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                    OutlinedButton(
+                                        onClick = { onNavigateToModule(PlatformModuleDestination.AgeGatedDatingSanctuary) },
+                                        shape = RoundedCornerShape(50),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        border = BorderStroke(1.dp, RosePulse.copy(alpha = 0.7f)),
+                                        modifier = Modifier
+                                            .minimumInteractiveComponentSize()
+                                            .testTag("launch_module_isolated_dating")
+                                    ) {
+                                        Text("🛡️ 18+ Dating Sanctuary", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                if (homeSection == "COMMUNITY_HUB") {
+                                    PersonaCommunityHubView(
+                                        activeRoleOrStageId = profile.role,
+                                        curatedResources = curatedResources,
+                                        wallPostsState = postsState,
+                                        onFetchStagePosts = onFetchStageCommunityPosts,
+                                        onSelectStage = { stage ->
+                                            onSwitchPersonaQuick(stage.stageId, stage.defaultAge)
+                                            onThemeColorSelect(stage.accentHex)
+                                        },
+                                        onOpenUrl = { launchWebUrl(it) },
+                                        onShareResourceToWall = { title, body ->
+                                            onCreatePost("Resource Guide", title, body)
+                                        },
+                                        onRecordSignal = onRecordLearnedSignal,
+                                        savedResourceIds = savedResourceIds,
+                                        onToggleSaveResource = { res ->
+                                            onToggleSaveResource(
+                                                res.id,
+                                                res.title,
+                                                res.subtitle,
+                                                res.badge,
+                                                res.url.orEmpty(),
+                                                res.category.label,
+                                                res.stageIds.firstOrNull() ?: profile.role
+                                            )
+                                        }
+                                    )
                                 }
 
                                 if (homeSection == "STAGE") {
@@ -949,7 +1066,7 @@ fun MainDashboardScreen(
                                                     DashboardTab.STUDIO_ARCADE to "🎬 Reels & Studio",
                                                     DashboardTab.THEME_PROFILE to "🎨 Profile & 3D",
                                                     DashboardTab.FRIENDS to "👥 Friends",
-                                                    DashboardTab.MESSAGING to "💬 Messages",
+                                                    DashboardTab.MESSAGING to "💬 Messenger & Feed",
                                                     DashboardTab.VIDEO_CHAT to "📹 Video Calls",
                                                     DashboardTab.FINANCE_GOALS to "💰 Wallet",
                                                     DashboardTab.RESOURCES to "🎓 Resources",
@@ -1167,6 +1284,7 @@ fun MainDashboardScreen(
                                         displayName = profile.displayName.ifBlank { "Jordan Vance" },
                                         currentProfileBitmap = customProfileBitmap,
                                         selected3DAvatarResId = selected3DAvatarResId,
+                                        userPersona = profile.role,
                                         onApplyToProfile = onUpdateProfileBitmap,
                                         onShareCreationToFeed = { category, title, content ->
                                             onCreatePost(category, title, content)
@@ -1223,6 +1341,8 @@ fun MainDashboardScreen(
                                 ) {
                                     listOf(
                                         "3D_CUSTOMIZER" to "🧊 3D Customizer",
+                                        "3D_PREVIEW" to "🧬 3D Persona Canvas",
+                                        "SAVED_RESOURCES" to "🔖 My Saved Resources (${savedResources.size})",
                                         "AVATARS" to "🎭 Avatars & Personas",
                                         "EDITOR" to "📝 Full Profile & Coins",
                                         "DATA_EXPORT" to "📥 Download Data",
@@ -1235,6 +1355,31 @@ fun MainDashboardScreen(
                                             modifier = Modifier.testTag("profile_link_${key.lowercase()}")
                                         )
                                     }
+                                }
+
+                                if (profileSection == "SAVED_RESOURCES") {
+                                    SavedResourcesProfileSection(
+                                        savedResources = savedResources,
+                                        onOpenResourceUrl = { launchWebUrl(it) },
+                                        onShareResourceToWall = { title, body ->
+                                            onCreatePost("Resource Guide", title, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        onRemoveSavedResource = onRemoveSavedResource,
+                                        onExploreLifelineHub = {
+                                            onSelectTab(DashboardTab.RESOURCES)
+                                        }
+                                    )
+                                }
+
+                                if (profileSection == "3D_PREVIEW") {
+                                    LifeStage3DAvatarPreviewScreen(
+                                        initialRoleOrStageId = profile.role,
+                                        onApplyStagePersona = { stage ->
+                                            onSwitchPersonaQuick(stage.stageId, stage.defaultAge)
+                                            onThemeColorSelect(stage.accentHex)
+                                        }
+                                    )
                                 }
 
                                 if (profileSection == "DATA_EXPORT") {
@@ -1381,6 +1526,19 @@ fun MainDashboardScreen(
                                         onPurchaseOrApplyShopItem = onPurchaseOrApplyShopItem,
                                         onTipCommunityUser = onTipCommunityUser
                                     )
+
+                                    SavedResourcesProfileSection(
+                                        savedResources = savedResources,
+                                        onOpenResourceUrl = { launchWebUrl(it) },
+                                        onShareResourceToWall = { title, body ->
+                                            onCreatePost("Resource Guide", title, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        },
+                                        onRemoveSavedResource = onRemoveSavedResource,
+                                        onExploreLifelineHub = {
+                                            onSelectTab(DashboardTab.RESOURCES)
+                                        }
+                                    )
                                 }
 
                                 if (profileSection == "STUDIO_3D") {
@@ -1415,6 +1573,16 @@ fun MainDashboardScreen(
                             DashboardTab.MESSAGING -> {
                                 WereEqualMessagingScreen(
                                     profile = profile,
+                                    learnedSignals = learnedSignals,
+                                    learnedInterests = learnedInterests,
+                                    learnedLifestyle = learnedLifestyle,
+                                    learnedResearch = learnedResearch,
+                                    onRecordLearnedSignal = onRecordLearnedSignal,
+                                    onAddCustomLearningSignal = onAddCustomLearningSignal,
+                                    onToggleLearnedInterest = onToggleLearnedInterest,
+                                    onOpenFriendsDirectory = {
+                                        onSelectTab(DashboardTab.FRIENDS)
+                                    },
                                     onShareMessageToWall = { headline, body ->
                                         onCreatePost("Milestone", headline, body)
                                         onSelectTab(DashboardTab.HUB_3D)
@@ -1579,7 +1747,19 @@ fun MainDashboardScreen(
                                         onDeleteCareerMilestone = onDeleteCareerMilestone,
                                         isBiometricUnlocked = isResourceHubUnlocked,
                                         onUnlockBiometric = onUnlockResourceHub,
-                                        onLockBiometric = onLockResourceHub
+                                        onLockBiometric = onLockResourceHub,
+                                        savedResourceIds = savedResourceIds,
+                                        onToggleSaveResource = { item ->
+                                            onToggleSaveResource(
+                                                item.id,
+                                                item.title,
+                                                item.subtitle,
+                                                item.badge,
+                                                item.url,
+                                                item.tags.firstOrNull() ?: "Lifeline & Resource Hub",
+                                                item.roles.firstOrNull() ?: profile.role
+                                            )
+                                        }
                                     )
                                 }
 
@@ -1611,7 +1791,7 @@ fun MainDashboardScreen(
                             }
 
                             DashboardTab.AI_TOOLS -> {
-                                var aiSection by rememberSaveable { mutableStateOf("STUDY") }
+                                var aiSection by rememberSaveable { mutableStateOf("BUILTIN") }
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1619,6 +1799,7 @@ fun MainDashboardScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     listOf(
+                                        "BUILTIN" to "✨ Built-In AI Tool",
                                         "STUDY" to "📚 AI Study Coach",
                                         "ADAPTIVE" to "🧠 Adaptive Mind",
                                         "VISION" to "🎨 AI Image & Voice"
@@ -1630,6 +1811,17 @@ fun MainDashboardScreen(
                                             modifier = Modifier.testTag("ai_link_${key.lowercase()}")
                                         )
                                     }
+                                }
+
+                                if (aiSection == "BUILTIN") {
+                                    com.example.ui.ai.AiBuiltInToolScreen(
+                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
+                                        userRole = profile.role,
+                                        onShareResultToWall = { title, body ->
+                                            onCreatePost("AI Insights", title, body)
+                                            onSelectTab(DashboardTab.HUB_3D)
+                                        }
+                                    )
                                 }
 
                                 if (aiSection == "STUDY") {
@@ -1888,6 +2080,34 @@ fun MainDashboardScreen(
                                 }
 
                                 if (safetySection == "COMMUNITY") {
+                                    PersonaCommunityHubView(
+                                        activeRoleOrStageId = profile.role,
+                                        curatedResources = curatedResources,
+                                        wallPostsState = postsState,
+                                        onFetchStagePosts = onFetchStageCommunityPosts,
+                                        onSelectStage = { stage ->
+                                            onSwitchPersonaQuick(stage.stageId, stage.defaultAge)
+                                            onThemeColorSelect(stage.accentHex)
+                                        },
+                                        onOpenUrl = { launchWebUrl(it) },
+                                        onShareResourceToWall = { title, body ->
+                                            onCreatePost("Resource Guide", title, body)
+                                        },
+                                        onRecordSignal = onRecordLearnedSignal,
+                                        savedResourceIds = savedResourceIds,
+                                        onToggleSaveResource = { res ->
+                                            onToggleSaveResource(
+                                                res.id,
+                                                res.title,
+                                                res.subtitle,
+                                                res.badge,
+                                                res.url.orEmpty(),
+                                                res.category.label,
+                                                res.stageIds.firstOrNull() ?: profile.role
+                                            )
+                                        }
+                                    )
+
                                     CommunityLifeStageHubCard(
                                         postsState = postsState,
                                         currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
@@ -2317,7 +2537,7 @@ fun MainDashboardScreen(
                             DashboardTab.STUDIO_ARCADE -> "🎬 Reels & Studio"
                             DashboardTab.THEME_PROFILE -> "🎨 Profile & 3D"
                             DashboardTab.FRIENDS -> "👥 Friends"
-                            DashboardTab.MESSAGING -> "💬 Messages"
+                            DashboardTab.MESSAGING -> "💬 Messenger & Feed"
                             DashboardTab.VIDEO_CHAT -> "📹 Video Calls"
                             DashboardTab.FINANCE_GOALS -> "💰 Wallet"
                             DashboardTab.RESOURCES -> "🎓 School & Aid"
@@ -2758,7 +2978,8 @@ private fun ThreeDProfileAndFeedTab(
                             .clip(RoundedCornerShape(18.dp))
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
                             .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(18.dp))
-                            .clickable { onNavigateToThemeAndPhotoCreator() },
+                            .clickable { onNavigateToThemeAndPhotoCreator() }
+                            .testTag("dashboard_profile_avatar_box"),
                         contentAlignment = Alignment.Center
                     ) {
                         if (customProfileBitmap != null) {
@@ -2766,24 +2987,43 @@ private fun ThreeDProfileAndFeedTab(
                                 bitmap = customProfileBitmap.asImageBitmap(),
                                 contentDescription = "User Profile Photo",
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else if (selected3DAvatarResId != null) {
-                            Image(
-                                painter = painterResource(id = selected3DAvatarResId),
-                                contentDescription = "Selected 3D Avatar Portrait",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("dashboard_profile_avatar_image")
                             )
                         } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(text = avatarEmojiBadge, style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    text = profile.displayName.take(2).uppercase(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Black
-                                )
+                            val resolvedAvatarResId = com.example.ui.components.resolveEffectiveAvatarResId(
+                                selected3DAvatarResId = selected3DAvatarResId,
+                                role = profile.role
+                            )
+                            Image(
+                                painter = painterResource(id = resolvedAvatarResId),
+                                contentDescription = if (selected3DAvatarResId != null) {
+                                    "Selected 3D Avatar Portrait"
+                                } else {
+                                    "Default 3D Placeholder Avatar for ${profile.role}"
+                                },
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .testTag("dashboard_profile_avatar_image")
+                            )
+                            if (selected3DAvatarResId == null) {
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.72f),
+                                    shape = RoundedCornerShape(topStart = 8.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .testTag("dashboard_profile_avatar_default_badge")
+                                ) {
+                                    Text(
+                                        text = "3D",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = HoloCyan,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -3964,7 +4204,7 @@ fun DashboardQuickSwipeTabStrip(
                         DashboardTab.STUDIO_ARCADE -> "🎬 Reels & Studio"
                         DashboardTab.THEME_PROFILE -> "🎨 Profile"
                         DashboardTab.FRIENDS -> "👥 Friends"
-                        DashboardTab.MESSAGING -> "💬 Messages"
+                        DashboardTab.MESSAGING -> "Messenger"
                         DashboardTab.VIDEO_CHAT -> "📹 Video"
                         DashboardTab.FINANCE_GOALS -> "💰 Wallet"
                         DashboardTab.RESOURCES -> "🎓 Resources"
@@ -3988,17 +4228,31 @@ fun DashboardQuickSwipeTabStrip(
                             .clickable { onSelectTab(tab) }
                             .testTag("quick_swipe_tab_pill_${tab.name.lowercase()}")
                     ) {
-                        Text(
-                            text = tabLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onSurface
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
                             modifier = Modifier.padding(horizontal = 11.dp, vertical = 5.dp)
-                        )
+                        ) {
+                            if (tab == DashboardTab.MESSAGING) {
+                                CustomMessengerIcon(
+                                    isSelected = isSelected,
+                                    unreadCount = 3,
+                                    accentColor = activeAccent,
+                                    iconSize = 15.dp,
+                                    tagName = "quick_strip_messenger_icon"
+                                )
+                            }
+                            Text(
+                                text = tabLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }

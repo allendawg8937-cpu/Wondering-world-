@@ -20,18 +20,24 @@ import {
       <div class="selector-group">
         <h3>1. Life Stage Base Character</h3>
         <div class="pill-grid">
-          @for (preset of stagePresets; track preset.stageId) {
+          @for (preset of stagePresets; track preset.stageId; let i = $index) {
             <button
               type="button"
-              class="choice-pill"
+              class="choice-pill stage-pill"
               [class.active]="selectedStageId === preset.stageId"
               [style.--pill-accent]="preset.accentHex"
+              [style.--stagger-index]="i"
               [attr.aria-pressed]="selectedStageId === preset.stageId"
               [attr.data-testid]="'stage-preset-' + preset.stageId"
               (click)="presetSelected.emit(preset)"
             >
-              <strong>{{ preset.stageLabel }}</strong>
-              <small>{{ preset.characterName }}</small>
+              <span class="stage-pill-row">
+                <span class="stage-icon" aria-hidden="true">{{ preset.badgeEmoji }}</span>
+                <span class="stage-pill-copy">
+                  <strong>{{ preset.stageLabel }}</strong>
+                  <small>{{ preset.characterName }}</small>
+                </span>
+              </span>
             </button>
           }
         </div>
@@ -89,8 +95,8 @@ import {
       }
 
       .selector-group {
-        background: #111827;
-        border: 1px solid #1f2937;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 14px;
         padding: 14px;
         display: grid;
@@ -100,7 +106,7 @@ import {
       h3 {
         margin: 0;
         font-size: 0.92rem;
-        color: #e2e8f0;
+        color: var(--text-primary);
       }
 
       .pill-grid {
@@ -113,22 +119,112 @@ import {
         text-align: left;
         padding: 9px 10px;
         border-radius: 10px;
-        border: 1px solid #334155;
-        background: #0f172a;
-        color: #e2e8f0;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        color: var(--text-primary);
         cursor: pointer;
         display: grid;
         gap: 2px;
+        transition:
+          transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+          border-color 200ms ease,
+          background-color 200ms ease,
+          box-shadow 200ms ease;
+      }
+
+      .stage-pill {
+        animation: stagePillEntrance 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation-delay: calc(var(--stagger-index, 0) * 55ms);
+      }
+
+      .stage-pill-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      .stage-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        background: rgba(148, 163, 184, 0.14);
+        flex-shrink: 0;
+        transition:
+          transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
+          background-color 220ms ease,
+          box-shadow 220ms ease;
+      }
+
+      .stage-pill-copy {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .choice-pill:hover {
+        transform: translateY(-2px);
+        border-color: var(--pill-accent, #38bdf8);
+      }
+
+      .stage-pill:hover .stage-icon {
+        transform: scale(1.2) rotate(-8deg);
+        background: color-mix(in srgb, var(--pill-accent, #38bdf8) 25%, transparent);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--pill-accent, #38bdf8) 45%, transparent);
       }
 
       .choice-pill.active {
         border-color: var(--pill-accent, #38bdf8);
-        background: rgba(56, 189, 248, 0.14);
+        background: rgba(56, 189, 248, 0.16);
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.18);
+      }
+
+      .stage-pill.active .stage-icon {
+        transform: scale(1.14);
+        background: color-mix(in srgb, var(--pill-accent, #38bdf8) 28%, transparent);
+        animation: stageIconPop 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       .choice-pill small {
         font-size: 0.72rem;
-        color: #94a3b8;
+        color: var(--text-muted);
+      }
+
+      @keyframes stagePillEntrance {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes stageIconPop {
+        0% {
+          transform: scale(0.88) rotate(0deg);
+        }
+        55% {
+          transform: scale(1.26) rotate(8deg);
+        }
+        100% {
+          transform: scale(1.14) rotate(0deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .stage-pill,
+        .stage-pill.active .stage-icon {
+          animation: none;
+        }
+        .choice-pill,
+        .stage-icon {
+          transition: none;
+        }
       }
 
       .theme-row {
@@ -143,17 +239,22 @@ import {
         gap: 7px;
         padding: 7px 12px;
         border-radius: 999px;
-        border: 1px solid #334155;
-        background: #0f172a;
-        color: #cbd5e1;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
         font-size: 0.8rem;
         cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease;
+      }
+
+      .theme-chip:hover {
+        transform: translateY(-1px);
       }
 
       .theme-chip.active {
         border-color: var(--chip-accent, #38bdf8);
-        background: rgba(56, 189, 248, 0.16);
-        color: #ffffff;
+        background: rgba(56, 189, 248, 0.18);
+        color: var(--text-primary);
         font-weight: 700;
       }
 

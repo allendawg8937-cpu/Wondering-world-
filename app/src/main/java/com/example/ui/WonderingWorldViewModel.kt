@@ -15,6 +15,7 @@ import com.example.data.model.PersonalizedDailyInsight
 import com.example.data.model.PersonaStageData
 import com.example.data.model.Profile3DConfig
 import com.example.data.model.ResourceDirectoryItem
+import com.example.data.model.SavedResource
 import com.example.data.model.UserInteraction
 import com.example.data.model.UserProfile
 import com.example.data.model.WallPost
@@ -1175,6 +1176,27 @@ class WonderingWorldViewModel(
         initialValue = emptyList()
     )
 
+    private val _localSavedResources = MutableStateFlow<List<SavedResource>>(emptyList())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val savedResourcesState: StateFlow<List<SavedResource>> = combine(
+        _authenticatedUid.flatMapLatest { uid ->
+            if (uid == null) {
+                flowOf(emptyList())
+            } else {
+                repository.observeSavedResources(uid).catch { emit(emptyList()) }
+            }
+        },
+        _localSavedResources
+    ) { cloudSaved, localSaved ->
+        (cloudSaved + localSaved)
+            .distinctBy { it.resourceId.ifBlank { it.id }.lowercase() }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        initialValue = emptyList()
+    )
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val wallPostsState: StateFlow<UiState<List<WallPost>>> = combine(
         _authenticatedUid.flatMapLatest { uid ->
@@ -1201,6 +1223,14 @@ class WonderingWorldViewModel(
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
         initialValue = UiState.Success(_localWallPosts.value)
     )
+
+    suspend fun fetchCommunityPostsForStage(stageId: String): Result<List<WallPost>> {
+        val remoteResult = repository.fetchStageTailoredCommunityPosts(stageId)
+        val cloudPosts = remoteResult.getOrNull().orEmpty()
+        val combined = (cloudPosts + _localWallPosts.value)
+            .distinctBy { it.id.ifBlank { "${it.title}:${it.content}" } }
+        return Result.success(combined)
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val budgetEntriesState: StateFlow<UiState<List<BudgetEntry>>> = combine(
@@ -2916,6 +2946,7 @@ class WonderingWorldViewModel(
                     onDeleted = {
                         _isDeletingAccount.value = false
                         _localBlockedUsers.value = emptyList()
+                        _localSavedResources.value = emptyList()
                         _localWallPosts.value = emptyList()
                         _localBudgetEntries.value = emptyList()
                         onAuthSessionChanged(null, null)
@@ -2934,8 +2965,69 @@ class WonderingWorldViewModel(
             } else {
                 _isDeletingAccount.value = false
                 _localBlockedUsers.value = emptyList()
+                _localSavedResources.value = emptyList()
                 _authBannerMessage.value = "Local session and preferences cleared."
                 _navScreen.value = AppNavScreen.LOGIN
+            }
+        }
+    }
+
+    fun toggleSaveResource(
+        resourceId: String,
+        title: String,
+        subtitle: String,
+        badge: String,
+        url: String,
+        category: String = "Lifeline & Resource Hub",
+        stageId: String = "all"
+    ) {
+        val safeDocId = resourceId
+            .ifBlank { "res_${title.hashCode()}" }
+            .replace(Regex("[^A-Za-z0-9_-]"), "_")
+            .take(100)
+        val currentlySaved = savedResourcesState.value.any {
+            it.resourceId.equals(safeDocId, ignoreCase = true) ||
+                it.id.equals(safeDocId, ignoreCase = true)
+        }
+        if (currentlySaved) {
+            removeSavedResource(safeDocId)
+            return
+        }
+        val uid = _authenticatedUid.value
+        val newEntry = SavedResource(
+            id = safeDocId,
+            userId = uid ?: "local_user",
+            resourceId = safeDocId,
+            title = title.trim().ifEmpty { "Verified Resource" }.take(160),
+            subtitle = subtitle.trim().take(500),
+            badge = badge.trim().ifEmpty { "VERIFIED RESOURCE" }.take(80),
+            url = url.trim().take(400),
+            category = category.trim().ifEmpty { "Lifeline & Resource Hub" }.take(80),
+            stageId = stageId.trim().ifEmpty { "all" }.take(40),
+            createdAt = Timestamp.now()
+        )
+        _localSavedResources.update { current ->
+            (listOf(newEntry) + current.filterNot { it.resourceId == safeDocId })
+        }
+        _settingsStatusBanner.value = "🔖 Saved '${newEntry.title}' to My Saved Resources."
+        recordLearnedSignal("Saved resource: ${newEntry.title}")
+        if (uid != null) {
+            viewModelScope.launch {
+                repository.saveResource(newEntry)
+            }
+        }
+    }
+
+    fun removeSavedResource(resourceId: String) {
+        val safeDocId = resourceId.replace(Regex("[^A-Za-z0-9_-]"), "_").take(100)
+        if (safeDocId.isBlank()) return
+        _localSavedResources.update { list ->
+            list.filterNot { it.resourceId == safeDocId || it.id == safeDocId }
+        }
+        _settingsStatusBanner.value = "Removed resource from My Saved Resources."
+        if (_authenticatedUid.value != null) {
+            viewModelScope.launch {
+                repository.removeSavedResource(safeDocId)
             }
         }
     }

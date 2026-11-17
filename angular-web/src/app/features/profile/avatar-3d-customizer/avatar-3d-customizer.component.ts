@@ -15,6 +15,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   AVATAR_GEAR_OPTIONS,
   AVATAR_LIGHTING_PRESETS,
+  AVATAR_POSE_OPTIONS,
   Avatar3dConfig,
   AvatarBackdropId,
   AvatarBaseModelOption,
@@ -38,7 +39,7 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
     <section class="studio-shell" data-testid="avatar-3d-customizer">
       <header class="studio-header">
         <div>
-          <span class="studio-kicker">Three.js WebGL Viewport</span>
+          <span class="studio-kicker">Three.js Photo &amp; 3D Avatar Studio</span>
           <h2>3D Avatar Customizer Studio</h2>
           <p class="studio-sub">
             {{ activePreset().stageLabel }} • {{ activePreset().characterName }} •
@@ -61,7 +62,7 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
             data-testid="avatar-3d-snapshot"
             (click)="exportSnapshot()"
           >
-            Snapshot PNG
+            Download Snapshot
           </button>
           <button
             type="button"
@@ -180,13 +181,15 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
               }
             </div>
 
-            <div class="chip-wrap">
+            <div class="chip-wrap" role="group" aria-label="Interactive animation states">
               @for (pose of poseOptions; track pose.id) {
                 <button
                   type="button"
                   class="mini-chip"
                   [class.active]="config().pose === pose.id"
-                  (click)="updateConfig({ pose: pose.id })"
+                  [attr.aria-pressed]="config().pose === pose.id"
+                  [attr.data-testid]="'pose-option-' + pose.id"
+                  (click)="setAnimationState(pose.id)"
                 >
                   {{ pose.label }}
                 </button>
@@ -273,13 +276,13 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
   styles: [
     `
       .studio-shell {
-        background: #0b1120;
-        border: 1px solid #1e293b;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
         border-radius: 20px;
         padding: 22px;
         display: grid;
         gap: 20px;
-        color: #f8fafc;
+        color: var(--text-primary);
       }
 
       .studio-header {
@@ -294,7 +297,7 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
         font-size: 0.72rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: #38bdf8;
+        color: var(--accent-link);
         font-weight: 700;
       }
 
@@ -306,7 +309,7 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
       .studio-sub {
         margin: 0;
         font-size: 0.88rem;
-        color: #94a3b8;
+        color: var(--text-muted);
       }
 
       .header-actions {
@@ -321,18 +324,18 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
         border-radius: 10px;
         font-weight: 600;
         cursor: pointer;
-        border: 1px solid #334155;
+        border: 1px solid var(--border-strong);
       }
 
       .btn-primary {
-        background: #2563eb;
-        border-color: #3b82f6;
+        background: var(--accent-primary);
+        border-color: var(--accent-primary);
         color: #ffffff;
       }
 
       .btn-secondary {
-        background: #111827;
-        color: #e2e8f0;
+        background: var(--bg-card);
+        color: var(--text-primary);
       }
 
       .studio-grid {
@@ -415,8 +418,8 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
       }
 
       .control-block {
-        background: #111827;
-        border: 1px solid #1f2937;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 14px;
         padding: 14px;
         display: grid;
@@ -426,7 +429,7 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
       .control-block h3 {
         margin: 0;
         font-size: 0.92rem;
-        color: #e2e8f0;
+        color: var(--text-primary);
       }
 
       .swatch-row,
@@ -443,12 +446,12 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
         width: 28px;
         height: 28px;
         border-radius: 50%;
-        border: 2px solid #334155;
+        border: 2px solid var(--border-subtle);
         cursor: pointer;
       }
 
       .skin-swatch.active {
-        border-color: #ffffff;
+        border-color: var(--text-primary);
         transform: scale(1.1);
       }
 
@@ -457,23 +460,23 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
         display: grid;
         gap: 4px;
         font-size: 0.8rem;
-        color: #cbd5e1;
+        color: var(--text-secondary);
       }
 
       .mini-chip {
         padding: 6px 11px;
         border-radius: 999px;
-        border: 1px solid #334155;
-        background: #0f172a;
-        color: #cbd5e1;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-surface);
+        color: var(--text-secondary);
         font-size: 0.78rem;
         cursor: pointer;
       }
 
       .mini-chip.active {
-        border-color: #38bdf8;
-        background: rgba(56, 189, 248, 0.18);
-        color: #ffffff;
+        border-color: var(--accent-link);
+        background: rgba(56, 189, 248, 0.2);
+        color: var(--text-primary);
         font-weight: 700;
       }
 
@@ -482,7 +485,7 @@ const STORAGE_KEY = 'wondering_world_avatar_3d_config_v2';
         align-items: center;
         gap: 6px;
         font-size: 0.8rem;
-        color: #cbd5e1;
+        color: var(--text-secondary);
       }
     `,
   ],
@@ -492,16 +495,16 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
   canvasHost!: ElementRef<HTMLDivElement>;
 
   @Output() readonly lookSaved = new EventEmitter<Avatar3dConfig>();
+  @Output() readonly snapshotDownloaded = new EventEmitter<{
+    dataUrl: string;
+    filename: string;
+  }>();
 
   readonly presets = LIFE_STAGE_AVATAR_PRESETS;
   readonly skinSwatches = SKIN_TONE_SWATCHES;
   readonly gearOptions = AVATAR_GEAR_OPTIONS;
   readonly lightingPresets = AVATAR_LIGHTING_PRESETS;
-  readonly poseOptions: Array<{ id: AvatarPoseId; label: string }> = [
-    { id: 'idle', label: 'Heroic Idle' },
-    { id: 'levitate', label: 'Levitate' },
-    { id: 'victory', label: 'Victory Wave' },
-  ];
+  readonly poseOptions = AVATAR_POSE_OPTIONS;
   readonly backdropOptions: Array<{ id: AvatarBackdropId; label: string }> = [
     { id: 'cyber-grid', label: 'Cyber Grid' },
     { id: 'nebula-orbit', label: 'Nebula Orbit' },
@@ -511,6 +514,7 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
   readonly config = signal<Avatar3dConfig>(this.loadInitialConfig());
   readonly webglUnavailable = signal(false);
   readonly statusMessage = signal('');
+  readonly lastSnapshotDataUrl = signal<string | null>(null);
 
   private scene?: THREE.Scene;
   private camera?: THREE.PerspectiveCamera;
@@ -531,6 +535,8 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
   private rightArm?: THREE.Mesh;
   private gearGroup?: THREE.Group;
   private backdropGroup?: THREE.Group;
+  private particleField?: THREE.Points;
+  private pedestalRingMesh?: THREE.Mesh;
 
   private skinMaterial?: THREE.MeshStandardMaterial;
   private suitMaterial?: THREE.MeshStandardMaterial;
@@ -603,6 +609,19 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
     this.rebuildGearMesh();
   }
 
+  setAnimationState(pose: AvatarPoseId): void {
+    this.updateConfig({ pose });
+    if (this.avatarRoot) {
+      this.avatarRoot.rotation.z = 0;
+    }
+    if (this.headGroup) {
+      this.headGroup.rotation.set(0, 0, 0);
+    }
+    const label =
+      this.poseOptions.find(p => p.id === pose)?.label ?? pose;
+    this.statusMessage.set(`Playing "${label}" 3D avatar animation.`);
+  }
+
   setBackdrop(backdrop: AvatarBackdropId): void {
     this.updateConfig({ backdrop });
     this.rebuildBackdrop();
@@ -636,23 +655,102 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
     this.statusMessage.set('Camera reset to front hero framing.');
   }
 
-  exportSnapshot(): void {
-    if (!this.renderer) {
+  exportSnapshot(): string | null {
+    const cfg = this.config();
+    const filename = `wondering-world-${cfg.stageId}-${cfg.baseModelStyle}.png`;
+
+    let dataUrl = '';
+    if (this.renderer && this.scene && this.camera) {
+      try {
+        this.renderer.render(this.scene, this.camera);
+        dataUrl = this.renderer.domElement.toDataURL('image/png');
+      } catch {
+        dataUrl = '';
+      }
+    }
+
+    if (!dataUrl || !dataUrl.startsWith('data:image/png')) {
+      dataUrl = this.renderFallbackSnapshotDataUrl();
+    }
+
+    if (!dataUrl) {
       this.statusMessage.set(
-        '3D viewport snapshot requires an active WebGL canvas.'
+        '3D viewport snapshot requires an active HTML canvas.'
       );
+      return null;
+    }
+
+    this.triggerPngDownload(dataUrl, filename);
+    this.lastSnapshotDataUrl.set(dataUrl);
+    this.snapshotDownloaded.emit({ dataUrl, filename });
+    this.statusMessage.set(`Downloaded 3D avatar snapshot (${filename}).`);
+    return dataUrl;
+  }
+
+  private renderFallbackSnapshotDataUrl(): string {
+    if (typeof document === 'undefined') {
+      return '';
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return '';
+    }
+
+    const cfg = this.config();
+    const preset = this.activePreset();
+
+    const grad = ctx.createRadialGradient(256, 170, 40, 256, 256, 300);
+    grad.addColorStop(0, '#1e3a8a');
+    grad.addColorStop(1, '#050816');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Stylized 3D silhouette ring & avatar core
+    ctx.strokeStyle = cfg.accentHex;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(256, 240, 132, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = cfg.suitHex;
+    ctx.beginPath();
+    ctx.roundRect(184, 244, 144, 126, 28);
+    ctx.fill();
+
+    ctx.fillStyle = cfg.skinToneHex;
+    ctx.beginPath();
+    ctx.arc(256, 194, 58, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${preset.badgeEmoji} ${preset.stageLabel} • ${cfg.baseModelStyle}`, 256, 434);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(`Theme: ${cfg.themeStyleId} • Gear: ${cfg.gearId}`, 256, 466);
+
+    try {
+      return canvas.toDataURL('image/png');
+    } catch {
+      return '';
+    }
+  }
+
+  private triggerPngDownload(dataUrl: string, filename: string): void {
+    if (typeof document === 'undefined') {
       return;
     }
-    try {
-      const dataUrl = this.renderer.domElement.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `wondering-world-${this.config().stageId}-${this.config().baseModelStyle}.png`;
-      link.click();
-      this.statusMessage.set('Exported 3D avatar PNG snapshot.');
-    } catch {
-      this.statusMessage.set('Snapshot saved in session buffer.');
-    }
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    link.rel = 'noopener';
+    document.body?.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   saveLook(): void {
@@ -806,14 +904,7 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
       return;
     }
 
-    while (this.avatarRoot.children.length > 0) {
-      const child = this.avatarRoot.children.pop();
-      child?.traverse(obj => {
-        if (obj instanceof THREE.Mesh) {
-          obj.geometry?.dispose();
-        }
-      });
-    }
+    this.disposeGroupChildren(this.avatarRoot);
 
     const style = this.config().baseModelStyle;
     const isVoxel = style === 'voxel-bot';
@@ -974,12 +1065,7 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
 
   private rebuildGearMesh(): void {
     if (!this.gearGroup || !this.accentMaterial || !this.suitMaterial) return;
-    while (this.gearGroup.children.length > 0) {
-      const child = this.gearGroup.children.pop();
-      if (child instanceof THREE.Mesh) {
-        child.geometry.dispose();
-      }
-    }
+    this.disposeGroupChildren(this.gearGroup);
 
     const gearId = this.config().gearId;
     if (gearId === 'visor') {
@@ -1047,12 +1133,8 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
   private rebuildBackdrop(): void {
     if (!this.scene) return;
     if (this.backdropGroup) {
+      this.disposeGroupChildren(this.backdropGroup);
       this.scene.remove(this.backdropGroup);
-      this.backdropGroup.traverse(obj => {
-        if (obj instanceof THREE.Mesh || obj instanceof THREE.GridHelper) {
-          obj.geometry?.dispose();
-        }
-      });
     }
 
     const group = new THREE.Group();
@@ -1062,6 +1144,32 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
     const grid = new THREE.GridHelper(10, 18, accentColor, 0x1e293b);
     grid.position.y = -0.02;
     group.add(grid);
+
+    // 3D Architectural Turntable Pedestal + Emissive Ring
+    const pedestalGeo = new THREE.CylinderGeometry(1.15, 1.28, 0.08, 48);
+    const pedestalMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      metalness: 0.72,
+      roughness: 0.25,
+    });
+    const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+    pedestal.position.y = -0.03;
+    pedestal.receiveShadow = true;
+    group.add(pedestal);
+
+    const trimGeo = new THREE.TorusGeometry(1.18, 0.022, 12, 64);
+    const trimMat = new THREE.MeshStandardMaterial({
+      color: accentColor,
+      emissive: accentColor,
+      emissiveIntensity: 0.85,
+      metalness: 0.5,
+      roughness: 0.2,
+    });
+    const trimRing = new THREE.Mesh(trimGeo, trimMat);
+    trimRing.rotation.x = Math.PI / 2;
+    trimRing.position.y = 0.012;
+    this.pedestalRingMesh = trimRing;
+    group.add(trimRing);
 
     const shadowPlaneGeo = new THREE.CircleGeometry(3.2, 48);
     const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.35 });
@@ -1081,6 +1189,28 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
       ring.position.y = 1.05;
       group.add(ring);
     }
+
+    // Real 3D Floating Particle Starfield
+    const count = 96;
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 * 3;
+      const radius = 1.45 + (i % 5) * 0.34;
+      positions[i * 3] = Math.cos(angle) * radius;
+      positions[i * 3 + 1] = 0.15 + ((i * 7) % 24) * 0.11;
+      positions[i * 3 + 2] = Math.sin(angle) * radius;
+    }
+    const particleGeo = new THREE.BufferGeometry();
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const particleMat = new THREE.PointsMaterial({
+      color: cfg.backdrop === 'solar-halo' ? 0xfbbf24 : accentColor,
+      size: 0.045,
+      transparent: true,
+      opacity: 0.82,
+    });
+    const points = new THREE.Points(particleGeo, particleMat);
+    this.particleField = points;
+    group.add(points);
 
     this.backdropGroup = group;
     this.scene.add(group);
@@ -1124,20 +1254,43 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
       this.avatarRoot.rotation.y += 0.008;
     }
 
-    if (cfg.pose === 'levitate') {
+    if (cfg.pose === 'wave') {
+      this.avatarRoot.position.y = Math.sin(elapsed * 2.0) * 0.03;
+      this.avatarRoot.rotation.z = 0;
+      if (this.headGroup) {
+        this.headGroup.rotation.z = Math.sin(elapsed * 3.2) * 0.08;
+      }
+      if (this.leftArm && this.rightArm) {
+        this.leftArm.rotation.z = 0.16;
+        this.rightArm.rotation.z = -2.45 + Math.sin(elapsed * 7.5) * 0.35;
+      }
+    } else if (cfg.pose === 'dance') {
+      this.avatarRoot.position.y = Math.abs(Math.sin(elapsed * 5.2)) * 0.16;
+      this.avatarRoot.rotation.z = Math.sin(elapsed * 2.6) * 0.12;
+      if (this.headGroup) {
+        this.headGroup.rotation.y = Math.sin(elapsed * 2.6) * 0.18;
+      }
+      if (this.leftArm && this.rightArm) {
+        this.leftArm.rotation.z = 0.75 + Math.sin(elapsed * 5.2) * 0.55;
+        this.rightArm.rotation.z = -0.75 + Math.sin(elapsed * 5.2) * 0.55;
+      }
+    } else if (cfg.pose === 'levitate') {
       this.avatarRoot.position.y = 0.24 + Math.sin(elapsed * 2.4) * 0.1;
+      this.avatarRoot.rotation.z = 0;
       if (this.leftArm && this.rightArm) {
         this.leftArm.rotation.z = 0.55;
         this.rightArm.rotation.z = -0.55;
       }
     } else if (cfg.pose === 'victory') {
       this.avatarRoot.position.y = Math.abs(Math.sin(elapsed * 3.0)) * 0.06;
+      this.avatarRoot.rotation.z = 0;
       if (this.leftArm && this.rightArm) {
         this.leftArm.rotation.z = 2.4;
         this.rightArm.rotation.z = -2.4 + Math.sin(elapsed * 5.0) * 0.22;
       }
     } else {
       this.avatarRoot.position.y = Math.sin(elapsed * 1.6) * 0.03;
+      this.avatarRoot.rotation.z = 0;
       if (this.leftArm && this.rightArm) {
         this.leftArm.rotation.z = 0.16 + Math.sin(elapsed * 1.6) * 0.04;
         this.rightArm.rotation.z = -0.16 - Math.sin(elapsed * 1.6) * 0.04;
@@ -1147,16 +1300,56 @@ export class Avatar3dCustomizerComponent implements AfterViewInit, OnDestroy {
     if (this.gearGroup) {
       this.gearGroup.position.y = Math.sin(elapsed * 2.2) * 0.015;
     }
+    if (this.particleField) {
+      this.particleField.rotation.y = elapsed * 0.14;
+    }
+    if (this.pedestalRingMesh) {
+      const pulse = 1 + Math.sin(elapsed * 2.5) * 0.015;
+      this.pedestalRingMesh.scale.set(pulse, pulse, 1);
+    }
+  }
+
+  private disposeGroupChildren(group: THREE.Group): void {
+    const shared = new Set<THREE.Material | undefined>([
+      this.skinMaterial,
+      this.suitMaterial,
+      this.accentMaterial,
+    ]);
+    while (group.children.length > 0) {
+      const child = group.children.pop();
+      child?.traverse(obj => {
+        if (
+          obj instanceof THREE.Mesh ||
+          obj instanceof THREE.GridHelper ||
+          obj instanceof THREE.Points
+        ) {
+          obj.geometry?.dispose();
+          const mat = (obj as THREE.Mesh | THREE.Points).material;
+          if (Array.isArray(mat)) {
+            mat.forEach(m => {
+              if (!shared.has(m)) m.dispose();
+            });
+          } else if (mat && !shared.has(mat)) {
+            mat.dispose();
+          }
+        }
+      });
+    }
   }
 
   private disposeSceneResources(): void {
     this.scene?.traverse(obj => {
-      if (obj instanceof THREE.Mesh) {
+      if (
+        obj instanceof THREE.Mesh ||
+        obj instanceof THREE.GridHelper ||
+        obj instanceof THREE.Points
+      ) {
         obj.geometry?.dispose();
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach(mat => mat.dispose());
+        const mat = (obj as THREE.Mesh | THREE.Points).material;
+        if (Array.isArray(mat)) {
+          mat.forEach(m => m.dispose());
         } else {
-          obj.material?.dispose();
+          mat?.dispose();
         }
       }
     });

@@ -46,8 +46,8 @@ import { Avatar3dCustomizerComponent } from './avatar-3d-customizer/avatar-3d-cu
         display: grid;
         grid-template-columns: 160px 1fr;
         gap: 24px;
-        background: #111827;
-        border: 1px solid #334155;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 16px;
         padding: 24px;
       }
@@ -66,23 +66,23 @@ import { Avatar3dCustomizerComponent } from './avatar-3d-customizer/avatar-3d-cu
 
       p {
         margin: 0 0 10px;
-        color: #cbd5e1;
+        color: var(--text-secondary);
       }
 
       .studio-link {
         display: inline-block;
         margin-top: 6px;
-        color: #38bdf8;
+        color: var(--accent-link);
         font-weight: 600;
         text-decoration: none;
       }
 
       .studio-placeholder {
-        background: #111827;
-        border: 1px solid #334155;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 16px;
         padding: 24px;
-        color: #94a3b8;
+        color: var(--text-muted);
       }
     `,
   ],

@@ -1,9 +1,50 @@
-html, body {
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-app: #020817;
+  --bg-surface: #0f172a;
+  --bg-card: #111827;
+  --bg-input: #0b1120;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-subtle: #334155;
+  --border-strong: #475569;
+  --accent-primary: #2563eb;
+  --accent-link: #38bdf8;
+  --focus-ring: #38bdf8;
+  --status-bg: rgba(16, 185, 129, 0.14);
+  --status-border: rgba(16, 185, 129, 0.5);
+  --status-text: #6ee7b7;
+}
+
+:root[data-theme='light-hc'] {
+  color-scheme: light;
+  --bg-app: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --text-primary: #090d16;
+  --text-secondary: #0f172a;
+  --text-muted: #334155;
+  --border-subtle: #0f172a;
+  --border-strong: #090d16;
+  --accent-primary: #1d4ed8;
+  --accent-link: #1e40af;
+  --focus-ring: #b91c1c;
+  --status-bg: #ecfdf5;
+  --status-border: #047857;
+  --status-text: #065f46;
+}
+
+html,
+body {
   margin: 0;
   min-height: 100%;
-  background: #020817;
-  color: #e2e8f0;
+  background: var(--bg-app);
+  color: var(--text-primary);
   font-family: Arial, sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 * {
@@ -12,4 +53,12 @@ html, body {
 
 a {
   color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }

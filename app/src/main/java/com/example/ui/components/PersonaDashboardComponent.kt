@@ -2,12 +2,23 @@ package com.example.ui.components
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -41,6 +52,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -50,9 +62,13 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,7 +81,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -348,7 +370,7 @@ sealed interface PersonaViewState {
  * stage layouts, metrics, checklists, and Cloud Firestore persistence under
  * `users/{userId}/persona_stage_data/{stageId}`.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PersonaDashboardComponent(
     currentRole: String,
@@ -511,57 +533,171 @@ fun PersonaDashboardComponent(
                                     val savedXp = personaStageDataMap[stage.stageId]?.stageScoreOrXp
                                         ?: buildDefaultPersonaStageData(stage.stageId).stageScoreOrXp
 
-                                    Surface(
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = if (isSelected) {
-                                            pillColor.copy(alpha = 0.24f)
-                                        } else {
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                                    val interactionSource = remember(stage.stageId) {
+                                        MutableInteractionSource()
+                                    }
+                                    val isHovered by interactionSource.collectIsHoveredAsState()
+                                    val isPressed by interactionSource.collectIsPressedAsState()
+
+                                    // Single staggered coroutine per stage switcher item (keeps pills visible & responsive immediately)
+                                    val entranceAlpha = remember(stage.stageId) { Animatable(0.88f) }
+                                    val entranceOffsetY = remember(stage.stageId) { Animatable(10f) }
+                                    LaunchedEffect(stage.stageId) {
+                                        delay(stage.ordinal * 45L)
+                                        coroutineScope {
+                                            launch {
+                                                entranceAlpha.animateTo(
+                                                    targetValue = 1f,
+                                                    animationSpec = tween(durationMillis = 280)
+                                                )
+                                            }
+                                            launch {
+                                                entranceOffsetY.animateTo(
+                                                    targetValue = 0f,
+                                                    animationSpec = spring(
+                                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                        stiffness = Spring.StiffnessMediumLow
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Hover, press & active selection icon scale/tilt animations
+                                    val iconScale by animateFloatAsState(
+                                        targetValue = when {
+                                            isPressed -> 0.90f
+                                            isHovered && isSelected -> 1.26f
+                                            isHovered -> 1.18f
+                                            isSelected -> 1.16f
+                                            else -> 1.0f
                                         },
-                                        border = BorderStroke(
-                                            width = if (isSelected) 2.dp else 1.dp,
-                                            color = if (isSelected) {
-                                                pillColor
-                                            } else {
-                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                                            }
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
                                         ),
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .minimumInteractiveComponentSize()
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .clickable {
-                                                selectedStageState = stage
-                                                onSelectLifeStage(stage.stageId, stage.defaultAge, stage.accentHex)
-                                            }
-                                            .testTag("persona_stage_pill_${stage.stageId}")
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 8.dp, vertical = 8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        label = "persona_icon_scale_${stage.stageId}"
+                                    )
+                                    val iconRotation by animateFloatAsState(
+                                        targetValue = when {
+                                            isHovered -> 9f
+                                            isSelected -> -6f
+                                            else -> 0f
+                                        },
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        ),
+                                        label = "persona_icon_rotation_${stage.stageId}"
+                                    )
+                                    val animatedPillBg by animateColorAsState(
+                                        targetValue = when {
+                                            isSelected -> pillColor.copy(alpha = 0.26f)
+                                            isHovered -> pillColor.copy(alpha = 0.14f)
+                                            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+                                        },
+                                        animationSpec = tween(durationMillis = 220),
+                                        label = "persona_pill_bg_${stage.stageId}"
+                                    )
+                                    val animatedBorderColor by animateColorAsState(
+                                        targetValue = when {
+                                            isSelected -> pillColor
+                                            isHovered -> pillColor.copy(alpha = 0.72f)
+                                            else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+                                        },
+                                        animationSpec = tween(durationMillis = 220),
+                                        label = "persona_pill_border_${stage.stageId}"
+                                    )
+                                    val tooltipState = rememberTooltipState()
+
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        TooltipBox(
+                                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                                            tooltip = {
+                                                PlainTooltip(
+                                                    modifier = Modifier.testTag("persona_stage_tooltip_${stage.stageId}")
+                                                ) {
+                                                    Text("${stage.emoji} ${stage.label}: ${stage.headline}")
+                                                }
+                                            },
+                                            state = tooltipState,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Text(
-                                                text = stage.emoji,
-                                                style = MaterialTheme.typography.titleSmall
-                                            )
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    text = stage.label,
-                                                    style = MaterialTheme.typography.labelMedium,
-                                                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                                                    color = if (isSelected) pillColor else MaterialTheme.colorScheme.onSurface,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = "$savedXp XP",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    maxLines = 1
-                                                )
+                                            Surface(
+                                                shape = RoundedCornerShape(16.dp),
+                                                color = animatedPillBg,
+                                                border = BorderStroke(
+                                                    width = if (isSelected || isHovered) 2.dp else 1.dp,
+                                                    color = animatedBorderColor
+                                                ),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .minimumInteractiveComponentSize()
+                                                    .semantics {
+                                                        contentDescription = "${stage.label} persona: ${stage.headline}"
+                                                    }
+                                                    .graphicsLayer {
+                                                        alpha = entranceAlpha.value
+                                                        translationY = entranceOffsetY.value
+                                                    }
+                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .clickable(
+                                                        interactionSource = interactionSource,
+                                                        indication = androidx.compose.foundation.LocalIndication.current
+                                                    ) {
+                                                        selectedStageState = stage
+                                                        onSelectLifeStage(stage.stageId, stage.defaultAge, stage.accentHex)
+                                                    }
+                                                    .testTag("persona_stage_pill_${stage.stageId}")
+                                            ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(28.dp)
+                                                        .graphicsLayer {
+                                                            scaleX = iconScale
+                                                            scaleY = iconScale
+                                                            rotationZ = iconRotation
+                                                        }
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            if (isSelected || isHovered) {
+                                                                pillColor.copy(alpha = 0.22f)
+                                                            } else {
+                                                                Color.Transparent
+                                                            }
+                                                        )
+                                                        .testTag("persona_stage_icon_${stage.stageId}"),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = stage.emoji,
+                                                        style = MaterialTheme.typography.titleSmall
+                                                    )
+                                                }
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = stage.label,
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                                                        color = if (isSelected) pillColor else MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Text(
+                                                        text = "$savedXp XP",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        maxLines = 1
+                                                    )
+                                                }
+                                            }
                                             }
                                         }
                                     }
@@ -575,7 +711,10 @@ fun PersonaDashboardComponent(
             // 3. State-Based Persona View Content (AnimatedContent switching between 6 distinct PersonaViewStates)
             AnimatedContent(
                 targetState = activeViewState,
-                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                transitionSpec = {
+                    (fadeIn(tween(240)) + scaleIn(initialScale = 0.96f, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy))) togetherWith
+                        (fadeOut(tween(180)) + scaleOut(targetScale = 0.96f))
+                },
                 label = "persona_stage_dynamic_content"
             ) { viewState ->
                 val stage = viewState.stage

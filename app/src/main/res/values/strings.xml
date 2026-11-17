@@ -23,4 +23,7 @@
     <string name="nav_finance_connect">Wallet &amp; Market</string>
     <string name="sign_out">Sign Out</string>
     <string name="default_web_client_id">1040803210617-s343sg55u34c0g05vf1keo47qrv0d9df.apps.googleusercontent.com</string>
+    <string name="avatar_preview_screen_title">3D Persona Avatar Studio</string>
+    <string name="avatar_preview_choose_stage">Toggle Life Stage Persona to Update 3D Model</string>
+    <string name="avatar_preview_back_desc">Back to previous screen</string>
 </resources>

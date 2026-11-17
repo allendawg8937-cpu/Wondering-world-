@@ -110,14 +110,54 @@ interface PlanetDao {
 
     @Query("DELETE FROM financial_tracker_entries")
     suspend fun clearAllFinancialEntries()
+
+    @Query("SELECT * FROM persona_stage_data ORDER BY stageScoreOrXp DESC")
+    fun observePersonaStages(): Flow<List<PersonaStageEntity>>
+
+    @Query("SELECT * FROM persona_stage_data ORDER BY stageScoreOrXp DESC")
+    suspend fun getAllPersonaStagesOnce(): List<PersonaStageEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPersonaStage(stage: PersonaStageEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPersonaStages(stages: List<PersonaStageEntity>)
+
+    @Query("SELECT * FROM profile_3d_configs ORDER BY updatedAtMillis DESC LIMIT 1")
+    fun observeActive3DConfig(): Flow<Profile3DConfigEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert3DConfig(config: Profile3DConfigEntity)
+
+    @Query("SELECT * FROM career_milestones ORDER BY stepOrder ASC")
+    fun observeCareerMilestones(): Flow<List<CareerMilestoneEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCareerMilestones(milestones: List<CareerMilestoneEntity>)
+
+    @Query("SELECT * FROM saved_resources ORDER BY createdAtMillis DESC")
+    fun observeSavedResources(): Flow<List<SavedResourceEntity>>
+
+    @Query("SELECT * FROM saved_resources ORDER BY createdAtMillis DESC")
+    suspend fun getAllSavedResourcesOnce(): List<SavedResourceEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertSavedResource(resource: SavedResourceEntity)
+
+    @Query("DELETE FROM saved_resources WHERE resourceId = :resourceId")
+    suspend fun deleteSavedResource(resourceId: String)
 }
 
 @Database(
     entities = [
         UserProfileEntity::class,
-        FinancialTrackerEntryEntity::class
+        FinancialTrackerEntryEntity::class,
+        PersonaStageEntity::class,
+        Profile3DConfigEntity::class,
+        CareerMilestoneEntity::class,
+        SavedResourceEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class PlanetDatabase : RoomDatabase() {

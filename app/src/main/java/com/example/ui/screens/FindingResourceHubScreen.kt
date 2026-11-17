@@ -27,6 +27,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Public
@@ -42,6 +44,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -159,11 +162,14 @@ fun FindingResourceHubScreen(
     isBiometricUnlocked: Boolean = false,
     onUnlockBiometric: () -> Unit = {},
     onLockBiometric: () -> Unit = {},
+    savedResourceIds: Set<String> = emptySet(),
+    onToggleSaveResource: (ResourceDirectoryItem) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var filterByMyPersona by remember { mutableStateOf(false) }
     var selectedCategoryTag by remember { mutableStateOf("All") }
+    var localSaveNotice by remember { mutableStateOf<String?>(null) }
 
     // ZIP Code & GPS State
     var zipCodeInput by remember { mutableStateOf("78701") }
@@ -596,16 +602,30 @@ fun FindingResourceHubScreen(
                             label = { Text(label, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
+                    if (localSaveNotice != null) {
+                        Text(
+                            text = localSaveNotice!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CyberEmerald,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.testTag("lifeline_save_status_banner")
+                        )
+                    }
                 }
             }
         }
 
         // 3. Filtered Resource Cards
         filteredResources.forEach { item ->
+            val sanitizedItemId = item.id.replace(Regex("[^A-Za-z0-9_-]"), "_").take(100)
+            val isSaved = item.id in savedResourceIds || sanitizedItemId in savedResourceIds
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.55f))
+                border = BorderStroke(
+                    1.dp,
+                    if (isSaved) CyberEmerald.copy(alpha = 0.75f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+                )
             ) {
                 Column(
                     modifier = Modifier
@@ -613,16 +633,55 @@ fun FindingResourceHubScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Surface(
-                        color = HoloCyan.copy(alpha = 0.16f),
-                        shape = RoundedCornerShape(50)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = item.badge,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = HoloCyan,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
+                        Surface(
+                            color = HoloCyan.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(50)
+                        ) {
+                            Text(
+                                text = item.badge,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = HoloCyan,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                onToggleSaveResource(item)
+                                localSaveNotice = if (isSaved) {
+                                    "Removed '${item.title}' from My Saved Resources."
+                                } else {
+                                    "Saved '${item.title}' to My Saved Resources in your Profile."
+                                }
+                            },
+                            shape = RoundedCornerShape(50),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSaved) CyberEmerald else HoloCyan.copy(alpha = 0.6f)
+                            ),
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .testTag("save_lifeline_resource_btn_${item.id}")
+                        ) {
+                            Icon(
+                                imageVector = if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                contentDescription = if (isSaved) "Remove ${item.title} from saved resources" else "Save ${item.title} to My Saved Resources",
+                                tint = if (isSaved) CyberEmerald else HoloCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isSaved) "Saved" else "Save",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isSaved) CyberEmerald else MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                     Text(
                         text = item.title,
@@ -648,7 +707,9 @@ fun FindingResourceHubScreen(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = Color.Black
                             ),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .minimumInteractiveComponentSize()
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.OpenInNew,
@@ -661,7 +722,8 @@ fun FindingResourceHubScreen(
 
                         OutlinedButton(
                             onClick = { onShareResourceToWall(item) },
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.minimumInteractiveComponentSize()
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.MenuBook,

@@ -512,6 +512,7 @@ fun PhotoStudioComponent(
     displayName: String,
     currentProfileBitmap: Bitmap?,
     selected3DAvatarResId: Int?,
+    userPersona: String = "Adult",
     onApplyToProfile: (Bitmap) -> Unit,
     onShareCreationToFeed: (category: String, title: String, content: String) -> Unit,
     modifier: Modifier = Modifier
@@ -530,9 +531,9 @@ fun PhotoStudioComponent(
         }
     }
 
-    var sourceBitmap by remember(selected3DAvatarResId) {
+    var sourceBitmap by remember(selected3DAvatarResId, userPersona) {
         val initial = currentProfileBitmap?.let { scaleBitmapForStudio(it, 960) } ?: run {
-            val resId = selected3DAvatarResId ?: R.drawable.img_avatar_cyber_astronaut
+            val resId = resolveEffectiveAvatarResId(selected3DAvatarResId, userPersona)
             BitmapFactory.decodeResource(context.resources, resId)?.let { scaleBitmapForStudio(it, 960) }
         }
         mutableStateOf(initial)
@@ -771,7 +772,7 @@ fun PhotoStudioComponent(
                 OutlinedButton(
                     onClick = {
                         val profileOrAvatar = currentProfileBitmap?.let { scaleBitmapForStudio(it, 960) } ?: run {
-                            val resId = selected3DAvatarResId ?: R.drawable.img_avatar_cyber_astronaut
+                            val resId = resolveEffectiveAvatarResId(selected3DAvatarResId, userPersona)
                             BitmapFactory.decodeResource(context.resources, resId)?.let { scaleBitmapForStudio(it, 960) }
                         }
                         if (profileOrAvatar != null) {

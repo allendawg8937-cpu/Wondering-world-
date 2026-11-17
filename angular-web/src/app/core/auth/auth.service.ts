@@ -6,13 +6,22 @@ import { Injectable, signal } from '@angular/core';
 })
 export class AuthService {
   private readonly loggedIn = signal(true);
+  private readonly currentEmail = signal('jordan@wonderingworld.app');
 
   isAuthenticated(): boolean {
     return this.loggedIn();
   }
 
+  userEmail(): string {
+    return this.currentEmail();
+  }
+
   async login(email: string, password: string): Promise<boolean> {
-    console.log('Login attempt:', { email, password });
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes('@') || password.length < 6) {
+      return false;
+    }
+    this.currentEmail.set(cleanEmail);
     this.loggedIn.set(true);
     return true;
   }

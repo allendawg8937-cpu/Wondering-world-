@@ -19,9 +19,13 @@ describe('AvatarThemeSelectorComponent', () => {
     const el: HTMLElement = fixture.nativeElement;
 
     for (const preset of LIFE_STAGE_AVATAR_PRESETS) {
-      expect(
-        el.querySelector(`[data-testid="stage-preset-${preset.stageId}"]`)
-      ).toBeTruthy();
+      const btn = el.querySelector(
+        `[data-testid="stage-preset-${preset.stageId}"]`
+      );
+      expect(btn).toBeTruthy();
+      expect(btn?.querySelector('.stage-icon')?.textContent?.trim()).toBe(
+        preset.badgeEmoji
+      );
     }
     for (const model of AVATAR_BASE_MODEL_OPTIONS) {
       expect(

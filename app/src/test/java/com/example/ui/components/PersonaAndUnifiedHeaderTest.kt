@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -77,9 +78,18 @@ class PersonaAndUnifiedHeaderTest {
             }
         }
 
+        composeRule.waitForIdle()
         val stages = listOf("kid", "teen", "student", "adult", "business", "veteran")
         stages.forEach { stageId ->
-            composeRule.onNodeWithTag("persona_stage_pill_$stageId").performScrollTo().assertIsDisplayed().performClick()
+            val expectedStage = DashboardLifeStage.fromRoleOrStageId(stageId)
+            composeRule.onNodeWithTag("persona_stage_icon_$stageId", useUnmergedTree = true)
+                .performScrollTo()
+                .assertIsDisplayed()
+            composeRule.onNodeWithTag("persona_stage_pill_$stageId")
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertContentDescriptionContains("${expectedStage.label} persona:", substring = true)
+                .performClick()
             composeRule.waitForIdle()
             assertEquals(stageId, currentRole)
             composeRule.onNodeWithTag("persona_stage_hero_$stageId").performScrollTo().assertIsDisplayed()
@@ -316,5 +326,48 @@ class PersonaAndUnifiedHeaderTest {
         composeRule.onNodeWithTag("life_stage_avatar_selected_check_veteran", useUnmergedTree = true)
             .performScrollTo()
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun wereEqualMessagingScreen_rendersCustomMessengerIconAndLearnsFromUser() {
+        var recordedSignals = 0
+        val learnedInterests = mutableSetOf<String>()
+
+        composeRule.setContent {
+            MaterialTheme {
+                Box(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    com.example.ui.screens.WereEqualMessagingScreen(
+                        profile = com.example.data.model.UserProfile(
+                            displayName = "Jordan Vance",
+                            role = "veteran",
+                            interests = listOf("Career", "3D Art")
+                        ),
+                        learnedSignals = emptyList(),
+                        learnedInterests = learnedInterests,
+                        onRecordLearnedSignal = { recordedSignals += 1 },
+                        onToggleLearnedInterest = { topic ->
+                            if (!learnedInterests.add(topic)) learnedInterests.remove(topic)
+                        }
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("custom_messenger_icon", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("adaptive_learning_summary_card").performScrollTo().assertIsDisplayed()
+
+        // Tap a learning topic chip and verify adaptive feedback fires
+        composeRule.onNodeWithTag("learn_topic_chip_stem")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+        assertTrue(recordedSignals >= 1)
+
+        // Switch to For You Feed and verify relatable circle posts appear
+        composeRule.onNodeWithTag("tab_switch_for_you_feed")
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("adaptive_for_you_feed_card").performScrollTo().assertIsDisplayed()
     }
 }

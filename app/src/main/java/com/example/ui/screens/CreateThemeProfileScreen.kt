@@ -559,34 +559,46 @@ fun CreateThemeProfileScreen(
                                 .testTag("theme_profile_avatar_preview"),
                             contentAlignment = Alignment.Center
                         ) {
-                            when {
-                                customProfileBitmap != null -> {
-                                    Image(
-                                        bitmap = customProfileBitmap.asImageBitmap(),
-                                        contentDescription = "Custom Profile Photo",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                                selected3DAvatarResId != null -> {
-                                    Image(
-                                        painter = painterResource(id = selected3DAvatarResId),
-                                        contentDescription = "Selected 3D Avatar Portrait",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                                else -> {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (customProfileBitmap != null) {
+                                Image(
+                                    bitmap = customProfileBitmap.asImageBitmap(),
+                                    contentDescription = "Custom Profile Photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .testTag("theme_profile_avatar_image")
+                                )
+                            } else {
+                                val resolvedAvatarResId = com.example.ui.components.resolveEffectiveAvatarResId(
+                                    selected3DAvatarResId = selected3DAvatarResId,
+                                    role = formState.role
+                                )
+                                Image(
+                                    painter = painterResource(id = resolvedAvatarResId),
+                                    contentDescription = if (selected3DAvatarResId != null) {
+                                        "Selected 3D Avatar Portrait"
+                                    } else {
+                                        "Default 3D Placeholder Avatar for ${formState.role}"
+                                    },
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .testTag("theme_profile_avatar_image")
+                                )
+                                if (selected3DAvatarResId == null) {
+                                    Surface(
+                                        color = Color.Black.copy(alpha = 0.72f),
+                                        shape = RoundedCornerShape(bottomEnd = 10.dp),
+                                        modifier = Modifier
+                                            .align(Alignment.TopStart)
+                                            .testTag("theme_profile_avatar_default_badge")
+                                    ) {
                                         Text(
-                                            text = avatarEmojiBadge,
-                                            style = MaterialTheme.typography.titleLarge
-                                        )
-                                        Text(
-                                            text = formState.displayName.take(2).uppercase(),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = activeAccent,
-                                            fontWeight = FontWeight.Black
+                                            text = "Default",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = HoloCyan,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                         )
                                     }
                                 }

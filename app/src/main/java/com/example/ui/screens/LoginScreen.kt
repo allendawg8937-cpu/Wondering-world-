@@ -114,7 +114,7 @@ fun LoginScreen(
     authBannerMessage: String?,
     isDarkMode: Boolean = true,
     onSetDarkMode: (Boolean) -> Unit = {},
-    selected3DAvatarResId: Int? = R.drawable.img_avatar_cyber_astronaut,
+    selected3DAvatarResId: Int? = null,
     onSelect3DAvatarPreset: (ThreeDAvatarPreset) -> Unit = {},
     currentThemeHex: String = "#6366F1",
     onThemeColorSelect: (String) -> Unit = {},
@@ -550,11 +550,20 @@ fun LoginScreen(
                             ) {
                                 Image(
                                     painter = painterResource(
-                                        id = selected3DAvatarResId ?: R.drawable.img_avatar_cyber_astronaut
+                                        id = com.example.ui.components.resolveEffectiveAvatarResId(
+                                            selected3DAvatarResId = selected3DAvatarResId,
+                                            role = signUpFormState.role
+                                        )
                                     ),
-                                    contentDescription = "6D Avatar Portrait",
+                                    contentDescription = if (selected3DAvatarResId != null) {
+                                        "6D Avatar Portrait"
+                                    } else {
+                                        "Default 3D Placeholder Avatar for ${signUpFormState.role}"
+                                    },
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .testTag("login_hero_avatar_image")
                                 )
                             }
                             Column(modifier = Modifier.weight(1f)) {

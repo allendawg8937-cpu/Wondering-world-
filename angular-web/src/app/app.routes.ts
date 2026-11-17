@@ -45,6 +45,13 @@ export const routes: Routes = [
             m => m.GoalsPageComponent
           ),
       },
+      {
+        path: 'downloads',
+        loadComponent: () =>
+          import('./features/downloads/download-center.component').then(
+            m => m.DownloadCenterComponent
+          ),
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
   },

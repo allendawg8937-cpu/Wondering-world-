@@ -30,6 +30,7 @@ data class LifeStageAvatarPreset(
     val accentHex: String,
     val accentColor: Color,
     @DrawableRes val drawableResId: Int,
+    @DrawableRes val defaultPlaceholderResId: Int,
     val tags: List<String>
 ) {
     fun toThreeDAvatarPreset(): ThreeDAvatarPreset = ThreeDAvatarPreset(
@@ -56,6 +57,7 @@ val LIFE_STAGE_3D_AVATARS: List<LifeStageAvatarPreset> = listOf(
         accentHex = "#10B981",
         accentColor = CyberEmerald,
         drawableResId = R.drawable.img_stage_avatar_kid,
+        defaultPlaceholderResId = R.drawable.img_default_persona_kid,
         tags = listOf("Energetic & Playful", "Cosmic Explorer", "Pixar 3D Render", "Holo Visor")
     ),
     LifeStageAvatarPreset(
@@ -69,6 +71,7 @@ val LIFE_STAGE_3D_AVATARS: List<LifeStageAvatarPreset> = listOf(
         accentHex = "#EC4899",
         accentColor = NeonPink,
         drawableResId = R.drawable.img_stage_avatar_teen,
+        defaultPlaceholderResId = R.drawable.img_default_persona_teen,
         tags = listOf("Energetic & Playful", "Music Producer", "Neon Rim Light", "Glowing Headphones")
     ),
     LifeStageAvatarPreset(
@@ -82,6 +85,7 @@ val LIFE_STAGE_3D_AVATARS: List<LifeStageAvatarPreset> = listOf(
         accentHex = "#6366F1",
         accentColor = Color(0xFF6366F1),
         drawableResId = R.drawable.img_stage_avatar_student,
+        defaultPlaceholderResId = R.drawable.img_default_persona_student,
         tags = listOf("Intellectual & Wise", "STEM Inventor", "Holographic Glow", "AR Smart Glasses")
     ),
     LifeStageAvatarPreset(
@@ -95,6 +99,7 @@ val LIFE_STAGE_3D_AVATARS: List<LifeStageAvatarPreset> = listOf(
         accentHex = "#00E5FF",
         accentColor = HoloCyan,
         drawableResId = R.drawable.img_stage_avatar_adult,
+        defaultPlaceholderResId = R.drawable.img_default_persona_adult,
         tags = listOf("Adventurous & Bold", "Friendly & Warm", "Pixar 3D Render", "Aurora Horizon")
     ),
     LifeStageAvatarPreset(
@@ -108,6 +113,7 @@ val LIFE_STAGE_3D_AVATARS: List<LifeStageAvatarPreset> = listOf(
         accentHex = "#F59E0B",
         accentColor = SolarAmber,
         drawableResId = R.drawable.img_stage_avatar_business,
+        defaultPlaceholderResId = R.drawable.img_default_persona_business,
         tags = listOf("Intellectual & Wise", "Solar Golden Hour", "Pixar 3D Render", "Solar Gold Crest")
     ),
     LifeStageAvatarPreset(
@@ -121,6 +127,7 @@ val LIFE_STAGE_3D_AVATARS: List<LifeStageAvatarPreset> = listOf(
         accentHex = "#A855F7",
         accentColor = Color(0xFFA855F7),
         drawableResId = R.drawable.img_stage_avatar_veteran,
+        defaultPlaceholderResId = R.drawable.img_default_persona_veteran,
         tags = listOf("Calm & Zen", "Veteran Mentor", "Solar Gold Crest", "Aurora Horizon")
     )
 )
@@ -136,6 +143,14 @@ fun findLifeStageAvatarForRole(role: String): LifeStageAvatarPreset {
         else -> LIFE_STAGE_3D_AVATARS[3]
     }
 }
+
+@DrawableRes
+fun defaultPlaceholderAvatarResIdForRole(role: String?): Int =
+    findLifeStageAvatarForRole(role.orEmpty()).defaultPlaceholderResId
+
+@DrawableRes
+fun resolveEffectiveAvatarResId(selected3DAvatarResId: Int?, role: String?): Int =
+    selected3DAvatarResId ?: defaultPlaceholderAvatarResIdForRole(role)
 
 val THREE_D_AVATAR_PRESETS = LIFE_STAGE_3D_AVATARS.map { it.toThreeDAvatarPreset() } + listOf(
     ThreeDAvatarPreset(

@@ -135,6 +135,74 @@ data class FinancialTrackerEntryEntity(
     val createdAtMillis: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "persona_stage_data")
+data class PersonaStageEntity(
+    @PrimaryKey
+    val stageId: String,
+    val userId: String = "primary_user",
+    val stageLabel: String,
+    val focusGoal: String = "",
+    val primaryMetricLabel: String = "Weekly Milestones",
+    val primaryMetricValue: Double = 0.0,
+    val primaryMetricTarget: Double = 10.0,
+    val pinnedTopicsCsv: String = "",
+    val completedTaskIdsCsv: String = "",
+    val customNote: String = "",
+    val stageScoreOrXp: Long = 100L,
+    val updatedAtMillis: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "profile_3d_configs")
+data class Profile3DConfigEntity(
+    @PrimaryKey
+    val configId: String = "active_primary_3d",
+    val userId: String = "primary_user",
+    val configName: String = "Cosmic Explorer",
+    val baseModelId: String = "humanoid-rig",
+    val primaryColorHex: String = "#00E5FF",
+    val secondaryColorHex: String = "#0F172A",
+    val auraColorHex: String = "#00E676",
+    val headgearId: String = "head_crown",
+    val eyewearId: String = "eye_visor",
+    val auraId: String = "aura_drones",
+    val rigId: String = "rig_pauldrons",
+    val animationPose: String = "idle",
+    val backdropId: String = "cyber-grid",
+    val metallicFinish: Double = 0.72,
+    val autoRotate: Boolean = true,
+    val updatedAtMillis: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "career_milestones")
+data class CareerMilestoneEntity(
+    @PrimaryKey
+    val milestoneId: String,
+    val userId: String = "primary_user",
+    val title: String,
+    val stage: String = "Foundation",
+    val description: String = "",
+    val targetTerm: String = "Step 1 • Foundation",
+    val status: String = "Upcoming",
+    val xpReward: Long = 100L,
+    val stepOrder: Int = 1,
+    val portalUrl: String = "",
+    val updatedAtMillis: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "saved_resources")
+data class SavedResourceEntity(
+    @PrimaryKey
+    val resourceId: String,
+    val userId: String = "primary_user",
+    val title: String,
+    val subtitle: String = "",
+    val badge: String = "VERIFIED RESOURCE",
+    val url: String = "",
+    val category: String = "Lifeline & Resource Hub",
+    val stageId: String = "all",
+    val createdAtMillis: Long = System.currentTimeMillis()
+)
+
 fun UserProfileEntity.toUserProfileState(): PlanetUserProfileState {
     return PlanetUserProfileState(
         profileId = profileId,

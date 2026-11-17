@@ -14,7 +14,15 @@ export type AvatarGearId =
   | 'crown'
   | 'jetpack';
 
-export type AvatarPoseId = 'idle' | 'levitate' | 'victory';
+export type AvatarPoseId = 'idle' | 'wave' | 'dance' | 'levitate' | 'victory';
+
+export const AVATAR_POSE_OPTIONS: Array<{ id: AvatarPoseId; label: string }> = [
+  { id: 'idle', label: 'Idle' },
+  { id: 'wave', label: 'Wave' },
+  { id: 'dance', label: 'Dance' },
+  { id: 'levitate', label: 'Levitate' },
+  { id: 'victory', label: 'Victory' },
+];
 
 export type AvatarBackdropId = 'cyber-grid' | 'nebula-orbit' | 'solar-halo';
 
@@ -45,6 +53,7 @@ export interface AvatarVisualThemePreset {
 export interface LifeStageAvatarPreset {
   stageId: LifeStageId;
   stageLabel: string;
+  badgeEmoji: string;
   characterName: string;
   tagline: string;
   accentHex: string;
@@ -177,6 +186,7 @@ export const LIFE_STAGE_AVATAR_PRESETS: LifeStageAvatarPreset[] = [
   {
     stageId: 'kid',
     stageLabel: 'Kid',
+    badgeEmoji: '🚀',
     characterName: 'Starlight Explorer',
     tagline: 'Playful chibi proportions with emerald cosmic visor',
     accentHex: '#10b981',
@@ -190,6 +200,7 @@ export const LIFE_STAGE_AVATAR_PRESETS: LifeStageAvatarPreset[] = [
   {
     stageId: 'teen',
     stageLabel: 'Teen',
+    badgeEmoji: '🎵',
     characterName: 'Neon Creator',
     tagline: 'Dynamic street rig with magenta sonic headphones',
     accentHex: '#ec4899',
@@ -203,6 +214,7 @@ export const LIFE_STAGE_AVATAR_PRESETS: LifeStageAvatarPreset[] = [
   {
     stageId: 'student',
     stageLabel: 'Student',
+    badgeEmoji: '🎓',
     characterName: 'Quantum Scholar',
     tagline: 'Focused scholar rig with indigo AR smart lenses',
     accentHex: '#6366f1',
@@ -216,6 +228,7 @@ export const LIFE_STAGE_AVATAR_PRESETS: LifeStageAvatarPreset[] = [
   {
     stageId: 'adult',
     stageLabel: 'Adult',
+    badgeEmoji: '🧭',
     characterName: 'Horizon Voyager',
     tagline: 'Balanced modern prime rig with cyan aurora halo',
     accentHex: '#00e5ff',
@@ -229,6 +242,7 @@ export const LIFE_STAGE_AVATAR_PRESETS: LifeStageAvatarPreset[] = [
   {
     stageId: 'business',
     stageLabel: 'Business',
+    badgeEmoji: '💼',
     characterName: 'Apex Founder',
     tagline: 'Tailored executive rig with golden telemetry crown',
     accentHex: '#f59e0b',
@@ -242,6 +256,7 @@ export const LIFE_STAGE_AVATAR_PRESETS: LifeStageAvatarPreset[] = [
   {
     stageId: 'veteran',
     stageLabel: 'Veteran',
+    badgeEmoji: '🛡️',
     characterName: 'Solar Mentor',
     tagline: 'Heroic commander rig with twilight thrusters',
     accentHex: '#a855f7',

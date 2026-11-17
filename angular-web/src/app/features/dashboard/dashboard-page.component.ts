@@ -85,8 +85,8 @@ import { ProfileService } from '../../data-access/services/profile.service';
       }
 
       .panel {
-        background: #111827;
-        border: 1px solid #334155;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
         border-radius: 16px;
         padding: 20px;
       }

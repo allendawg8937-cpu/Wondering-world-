@@ -2,6 +2,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../auth/auth.service';
+import { ThemeService } from '../theme/theme.service';
 
 @Component({
   selector: 'app-shell',
@@ -10,13 +11,34 @@ import { AuthService } from '../auth/auth.service';
   template: `
     <div class="app-shell">
       <aside class="sidebar">
-        <h2>Wondering World</h2>
+        <div class="brand-row">
+          <h2>Wondering World</h2>
+          <button
+            type="button"
+            class="theme-toggle-btn"
+            data-testid="global-theme-toggle"
+            [attr.aria-pressed]="themeService.isHighContrastLight()"
+            [attr.aria-label]="
+              themeService.isHighContrastLight()
+                ? 'Switch to default dark theme'
+                : 'Switch to high-contrast light theme'
+            "
+            (click)="themeService.toggleTheme()"
+          >
+            {{
+              themeService.isHighContrastLight()
+                ? '🌙 Dark Theme'
+                : '☀️ High-Contrast Light'
+            }}
+          </button>
+        </div>
 
-        <nav>
+        <nav aria-label="Main navigation">
           <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
           <a routerLink="/profile" routerLinkActive="active">Profile</a>
           <a routerLink="/avatar-3d" routerLinkActive="active">3D Avatar Studio</a>
           <a routerLink="/finance/goals" routerLinkActive="active">Finance Goals</a>
+          <a routerLink="/downloads" routerLinkActive="active">APK &amp; SDK</a>
           <button type="button" class="logout-btn" (click)="logout()">
             Logout
           </button>
@@ -33,68 +55,97 @@ import { AuthService } from '../auth/auth.service';
       :host {
         display: block;
         min-height: 100vh;
-        background: #0f172a;
-        color: #e2e8f0;
+        background: var(--bg-app);
+        color: var(--text-primary);
         font-family: Arial, sans-serif;
       }
 
       .app-shell {
         display: grid;
-        grid-template-columns: 220px 1fr;
+        grid-template-columns: 230px 1fr;
         min-height: 100vh;
       }
 
+      @media (max-width: 780px) {
+        .app-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .sidebar {
-        background: #111827;
-        padding: 24px 20px;
-        border-right: 1px solid #1f2937;
+        background: var(--bg-card);
+        padding: 20px 18px;
+        border-right: 1px solid var(--border-subtle);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .brand-row {
+        display: grid;
+        gap: 10px;
       }
 
       .sidebar h2 {
-        margin: 0 0 24px;
+        margin: 0;
         font-size: 1.2rem;
+        color: var(--text-primary);
+      }
+
+      .theme-toggle-btn {
+        width: 100%;
+        padding: 9px 11px;
+        border-radius: 8px;
+        border: 2px solid var(--border-strong);
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-align: left;
+        cursor: pointer;
       }
 
       nav {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
       }
 
       nav a {
-        color: #cbd5e1;
+        color: var(--text-secondary);
         text-decoration: none;
         padding: 10px 12px;
         border-radius: 8px;
+        border: 1px solid transparent;
+        font-weight: 600;
         transition: background 0.2s ease;
       }
 
       nav a.active {
-        background: #1d4ed8;
-        color: white;
+        background: var(--accent-primary);
+        color: #ffffff;
       }
 
       nav .logout-btn {
-        margin-top: 12px;
+        margin-top: 10px;
         padding: 10px 12px;
-        border: 1px solid #ef4444;
+        border: 2px solid #dc2626;
         border-radius: 8px;
-        background: rgba(239, 68, 68, 0.14);
-        color: #fca5a5;
-        font-size: 1rem;
-        font-weight: 600;
+        background: rgba(220, 38, 38, 0.12);
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        font-weight: 700;
         text-align: left;
         cursor: pointer;
-        transition: background 0.2s ease, color 0.2s ease;
       }
 
       nav .logout-btn:hover {
-        background: #ef4444;
+        background: #dc2626;
         color: #ffffff;
       }
 
       .content {
-        padding: 32px;
+        padding: 28px;
       }
     `,
   ],
@@ -102,6 +153,7 @@ import { AuthService } from '../auth/auth.service';
 export class AppShellComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  readonly themeService = inject(ThemeService);
 
   logout(): void {
     this.authService.logout();

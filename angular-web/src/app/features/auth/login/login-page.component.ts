@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ThemeService } from '../../../core/theme/theme.service';
 
 @Component({
   selector: 'app-login-page',
@@ -11,7 +12,18 @@ import { AuthService } from '../../../core/auth/auth.service';
   template: `
     <section class="login">
       <div class="card">
-        <h1>Welcome back</h1>
+        <div class="login-top">
+          <h1>Welcome back</h1>
+          <button
+            type="button"
+            class="theme-btn"
+            data-testid="login-theme-toggle"
+            [attr.aria-pressed]="themeService.isHighContrastLight()"
+            (click)="themeService.toggleTheme()"
+          >
+            {{ themeService.isHighContrastLight() ? '🌙 Dark' : '☀️ Light HC' }}
+          </button>
+        </div>
 
         <form [formGroup]="form" (ngSubmit)="submit()">
           <label>
@@ -37,22 +49,42 @@ import { AuthService } from '../../../core/auth/auth.service';
         min-height: 100vh;
         display: grid;
         place-items: center;
-        background: linear-gradient(135deg, #0f172a, #1e293b);
-        color: #e2e8f0;
+        padding: 16px;
+        background: var(--bg-app);
+        color: var(--text-primary);
       }
 
       .card {
         width: min(100%, 420px);
-        background: rgba(15, 23, 42, 0.9);
-        border: 1px solid #334155;
+        background: var(--bg-surface);
+        border: 2px solid var(--border-subtle);
         border-radius: 16px;
         padding: 24px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24);
       }
 
+      .login-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
       h1 {
-        margin: 0 0 20px;
-        font-size: 2rem;
+        margin: 0;
+        font-size: 1.85rem;
+      }
+
+      .theme-btn {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: 2px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
       }
 
       form {
@@ -64,24 +96,25 @@ import { AuthService } from '../../../core/auth/auth.service';
         display: grid;
         gap: 8px;
         font-size: 0.95rem;
+        font-weight: 600;
       }
 
       input {
-        background: #0b1120;
-        border: 1px solid #475569;
-        color: white;
+        background: var(--bg-input);
+        border: 2px solid var(--border-strong);
+        color: var(--text-primary);
         border-radius: 8px;
         padding: 12px 14px;
         font-size: 1rem;
       }
 
-      button {
-        background: #2563eb;
-        color: white;
+      button[type='submit'] {
+        background: var(--accent-primary);
+        color: #ffffff;
         border: none;
         border-radius: 10px;
         padding: 12px 16px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
       }
     `,
@@ -91,6 +124,7 @@ export class LoginPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  readonly themeService = inject(ThemeService);
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],

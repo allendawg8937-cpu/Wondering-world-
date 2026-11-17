@@ -197,6 +197,24 @@
                   }
                 }
               }
+            },
+            "saved_resources": {
+              "description": "User-bookmarked Lifeline and Community Hub resources displayed in My Saved Resources profile section",
+              "documents": {
+                "{resourceId}": {
+                  "fields": {
+                    "userId": "String",
+                    "resourceId": "String",
+                    "title": "String",
+                    "subtitle": "String",
+                    "badge": "String",
+                    "url": "String",
+                    "category": "String",
+                    "stageId": "String",
+                    "createdAt": "Timestamp"
+                  }
+                }
+              }
             }
           }
         }

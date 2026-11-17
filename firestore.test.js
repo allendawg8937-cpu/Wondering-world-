@@ -736,6 +736,61 @@ test("SocialFollow & PostLike & PostComment: validates owner CRUD, immutability,
   await assertSucceeds(commentRef.delete());
 });
 
+test("SavedResources: owner can save, list, update, and remove saved resources; blocks cross-user, ghost fields, and unauth access", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const bobDb = testEnv.authenticatedContext(BOB_UID).firestore();
+  const unauthDb = testEnv.unauthenticatedContext().firestore();
+  const now = new Date();
+
+  const savedRef = aliceDb
+    .collection("users")
+    .doc(ALICE_UID)
+    .collection("saved_resources")
+    .doc("lifeline_988");
+
+  const validSaved = {
+    userId: ALICE_UID,
+    resourceId: "lifeline_988",
+    title: "988 Suicide & Crisis Lifeline",
+    subtitle: "Free 24/7 confidential mental health & crisis support.",
+    badge: "CRISIS LIFELINE • FREE",
+    url: "https://988lifeline.org/",
+    category: "Crisis Support",
+    stageId: "all",
+    createdAt: now,
+  };
+
+  await assertSucceeds(savedRef.set(validSaved));
+  await assertSucceeds(savedRef.get());
+  await assertSucceeds(
+    aliceDb.collection("users").doc(ALICE_UID).collection("saved_resources").get()
+  );
+
+  // Reject ghost fields
+  await assertFails(
+    savedRef.set({
+      ...validSaved,
+      isAdminVerified: true,
+    })
+  );
+
+  // Reject cross-user read & delete
+  await assertFails(
+    bobDb.collection("users").doc(ALICE_UID).collection("saved_resources").doc("lifeline_988").get()
+  );
+  await assertFails(
+    bobDb.collection("users").doc(ALICE_UID).collection("saved_resources").doc("lifeline_988").delete()
+  );
+
+  // Reject unauthenticated access
+  await assertFails(
+    unauthDb.collection("users").doc(ALICE_UID).collection("saved_resources").doc("lifeline_988").get()
+  );
+
+  await assertSucceeds(savedRef.delete());
+});
+
+
 
 
 

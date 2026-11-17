@@ -228,8 +228,8 @@ private val ALL_PULL_DOWN_PAGES = listOf(
     PullDownPageItem(
         tab = DashboardTab.MESSAGING,
         stepNumber = 5,
-        title = "5. Messages & Chat",
-        subtitle = "Direct Messages & Match Icebreakers",
+        title = "5. Messenger & Feed",
+        subtitle = "Adaptive Social Feed & Direct Messages",
         icon = Icons.AutoMirrored.Filled.Chat,
         accent = CyberEmerald,
         tag = "pull_nav_messaging"
