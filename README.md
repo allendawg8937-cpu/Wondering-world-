@@ -64,4 +64,3 @@ FIRESTORE_EMULATOR_HOST="127.0.0.1:8085" gradle :app:testDebugUnitTest
 - **Email**: allengrogan33@gmail.com
 - **Phone**: 509-552-3217
 - **Address**: 820 N Summit Blvd Apt 205
-run this app
