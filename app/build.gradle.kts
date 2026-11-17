@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.wonderingworld.xqrvkl"
     minSdk = 24
     targetSdk = 36
-    versionCode = 8
-    versionName = "8.0"
+    versionCode = 9
+    versionName = "9.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -43,8 +43,8 @@ android {
 
   buildTypes {
     release {
-      isCrunchPngs = ture
-      isMinifyEnabled = true
+      isCrunchPngs = false
+      isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
       // AI Studio.
@@ -66,7 +66,7 @@ android {
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {
-    includeInApk = true
+    includeInApk = false
     includeInBundle = true
   }
 }
@@ -111,7 +111,7 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
-  implementation(libs.androidx.navigation.compose)
+  // implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   // implementation(libs.coil.compose)

@@ -35,8 +35,6 @@ fun EmbeddedSearchWebView(
 ) {
     var isLoading by remember { mutableStateOf(true) }
 
-    val safeHttpsUrl = remember(url) { com.example.network.SecureUrlHelper.normalizeHttpsUrl(url) }
-
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -54,18 +52,11 @@ fun EmbeddedSearchWebView(
                                 view: WebView?,
                                 request: WebResourceRequest?
                             ): Boolean {
-                                val nextUrl = request?.url?.toString().orEmpty()
-                                return if (com.example.network.SecureUrlHelper.isStrictHttpsUrl(nextUrl)) {
-                                    false
-                                } else {
-                                    view?.loadUrl(com.example.network.SecureUrlHelper.normalizeHttpsUrl(nextUrl))
-                                    true
-                                }
+                                return false
                             }
                         }
                         settings.javaScriptEnabled = true
-                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                        loadUrl(safeHttpsUrl)
+                        loadUrl(url)
                     }
                 },
                 modifier = Modifier.fillMaxSize()

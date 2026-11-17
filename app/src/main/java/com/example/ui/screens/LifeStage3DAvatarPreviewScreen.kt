@@ -18,9 +18,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -86,9 +84,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -97,7 +93,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.ui.components.DashboardLifeStage
-import com.example.ui.components.defaultPlaceholderAvatarResIdForRole
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -530,56 +525,21 @@ fun LifeStage3DAvatarPreviewScreen(
                         )
                     }
 
-                    // Top-right 3D telemetry chip + Default 3D Placeholder portrait thumbnail
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    // Top-right 3D telemetry chip
+                    Surface(
+                        color = Color(0xCC0F172A),
+                        shape = RoundedCornerShape(50),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp)
                     ) {
-                        Surface(
-                            color = Color(0xCC0F172A),
-                            shape = RoundedCornerShape(50)
-                        ) {
-                            Text(
-                                text = "Pose: ${activePose.label}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = animAura,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
-
-                        Surface(
-                            color = Color(0xCC0F172A),
-                            shape = RoundedCornerShape(14.dp),
-                            border = BorderStroke(1.dp, animAura.copy(alpha = 0.65f)),
-                            modifier = Modifier.testTag("avatar_3d_default_placeholder_thumb")
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(6.dp)
-                            ) {
-                                Image(
-                                    painter = painterResource(
-                                        id = defaultPlaceholderAvatarResIdForRole(activeStage.stageId)
-                                    ),
-                                    contentDescription = "Default 3D Placeholder for ${activeStage.label} stage",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .border(1.5.dp, animAura, CircleShape)
-                                )
-                                Text(
-                                    text = "Default 3D",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+                        Text(
+                            text = "Pose: ${activePose.label}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = animAura,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
                     }
                 }
             }

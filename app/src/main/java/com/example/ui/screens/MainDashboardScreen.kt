@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brush
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Celebration
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
@@ -156,7 +157,6 @@ import com.example.data.model.Friend
 import com.example.data.model.FriendRequest
 import com.example.data.model.PersonalizedDailyInsight
 import com.example.data.model.ResourceDirectoryItem
-import com.example.data.model.SavedResource
 import com.example.data.model.UserInteraction
 import com.example.data.model.UserProfile
 import com.example.data.model.WallPost
@@ -168,7 +168,6 @@ import com.example.ui.DashboardTab
 import com.example.ui.SignUpFormState
 import com.example.ui.UiState
 import com.example.ui.UserIdeaProposal
-import com.example.ui.navigation.PlatformModuleDestination
 import androidx.compose.material.icons.filled.Newspaper
 import com.example.ui.components.AdaptiveUserLearningAiBotAndToolsCard
 import com.example.ui.components.AdultProfileDatingHubCard
@@ -192,7 +191,6 @@ import com.example.ui.components.FinancialLiteracyTrackerCard
 import com.example.ui.components.FinancialTipOfTheDayCard
 import com.example.ui.components.LifeStageAvatarSelectionGridCard
 import com.example.ui.components.Persona3DAvatarSelectionCard
-import com.example.ui.components.PersonaCommunityHubView
 import com.example.ui.components.PersonaProfileSystemCard
 import com.example.ui.components.PersonaSelectionComponent
 import com.example.ui.components.PersonalGrowthRechartsDashboard
@@ -214,7 +212,6 @@ import com.example.ui.components.PersonaDashboardComponent
 import com.example.ui.components.ProfileDownloadDataCard
 import com.example.ui.components.PublishedVideoReelsStore
 import com.example.ui.components.ResourceHubCard
-import com.example.ui.components.SavedResourcesProfileSection
 import com.example.ui.components.SettingsBlockUsersCard
 import com.example.ui.components.SettingsCodeOfConductCard
 import com.example.ui.components.SettingsDeleteAccountCard
@@ -348,6 +345,7 @@ fun MainDashboardScreen(
     onUnlockResourceHub: () -> Unit = {},
     onLockResourceHub: () -> Unit = {},
     onNavigateToFriendsDiscovery: () -> Unit = {},
+    onOpenCreativePhotoStudio: () -> Unit = {},
     friendsState: UiState<List<Friend>> = UiState.Success(emptyList()),
     incomingRequestsState: UiState<List<FriendRequest>> = UiState.Success(emptyList()),
     discoveredUsers: List<UserProfile> = emptyList(),
@@ -402,28 +400,12 @@ fun MainDashboardScreen(
     onClearSettingsStatusBanner: () -> Unit = {},
     isDeletingAccount: Boolean = false,
     onDeleteAccountPermanently: () -> Unit = {},
-    savedResources: List<SavedResource> = emptyList(),
-    onToggleSaveResource: (
-        resourceId: String,
-        title: String,
-        subtitle: String,
-        badge: String,
-        url: String,
-        category: String,
-        stageId: String
-    ) -> Unit = { _, _, _, _, _, _, _ -> },
-    onRemoveSavedResource: (String) -> Unit = {},
-    onFetchStageCommunityPosts: suspend (String) -> Result<List<WallPost>> = { Result.success(emptyList()) },
-    onNavigateToModule: (PlatformModuleDestination) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var universalSearchQuery by remember { mutableStateOf("") }
     var showAllPagesSheet by rememberSaveable { mutableStateOf(false) }
     var showInstallPublishSheet by rememberSaveable { mutableStateOf(false) }
-    val savedResourceIds = remember(savedResources) {
-        savedResources.flatMap { listOf(it.resourceId, it.id) }.filter { it.isNotBlank() }.toSet()
-    }
 
     val blockedIdsSet = remember(blockedUsers) {
         blockedUsers.map { it.blockedUserId.lowercase() }.toSet()
@@ -871,7 +853,6 @@ fun MainDashboardScreen(
                                 ) {
                                     listOf(
                                         "STAGE" to "🎛️ My Stage",
-                                        "COMMUNITY_HUB" to "🌍 Stage Community",
                                         "FEED" to "🌐 Social Wall",
                                         "PAGES" to "🔗 All Links",
                                         "SETUP" to "🧭 3-Step Setup",
@@ -889,90 +870,6 @@ fun MainDashboardScreen(
                                             modifier = Modifier.testTag("home_section_link_${key.lowercase()}")
                                         )
                                     }
-                                }
-
-                                // Sealed-Class Module Navigation Bar (Main Dashboard -> Photo Studio / Financial Literacy / 18+ Sanctuary)
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .horizontalScroll(rememberScrollState())
-                                        .testTag("home_module_nav_strip"),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { onNavigateToModule(PlatformModuleDestination.PhotoStudio) },
-                                        shape = RoundedCornerShape(50),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        border = BorderStroke(1.dp, NeonPink.copy(alpha = 0.6f)),
-                                        modifier = Modifier
-                                            .minimumInteractiveComponentSize()
-                                            .testTag("launch_module_photo_studio")
-                                    ) {
-                                        Text("📸 Photo Studio Module", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                    OutlinedButton(
-                                        onClick = { onNavigateToModule(PlatformModuleDestination.FinancialLiteracy) },
-                                        shape = RoundedCornerShape(50),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        border = BorderStroke(1.dp, CyberEmerald.copy(alpha = 0.6f)),
-                                        modifier = Modifier
-                                            .minimumInteractiveComponentSize()
-                                            .testTag("launch_module_financial_literacy")
-                                    ) {
-                                        Text("💳 Financial Literacy Module", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                    OutlinedButton(
-                                        onClick = { onNavigateToModule(PlatformModuleDestination.AiBuiltInTool) },
-                                        shape = RoundedCornerShape(50),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        border = BorderStroke(1.dp, HoloCyan.copy(alpha = 0.7f)),
-                                        modifier = Modifier
-                                            .minimumInteractiveComponentSize()
-                                            .testTag("launch_module_ai_built_in_tool")
-                                    ) {
-                                        Text("✨ Built-In AI Tool", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                    OutlinedButton(
-                                        onClick = { onNavigateToModule(PlatformModuleDestination.AgeGatedDatingSanctuary) },
-                                        shape = RoundedCornerShape(50),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        border = BorderStroke(1.dp, RosePulse.copy(alpha = 0.7f)),
-                                        modifier = Modifier
-                                            .minimumInteractiveComponentSize()
-                                            .testTag("launch_module_isolated_dating")
-                                    ) {
-                                        Text("🛡️ 18+ Dating Sanctuary", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-
-                                if (homeSection == "COMMUNITY_HUB") {
-                                    PersonaCommunityHubView(
-                                        activeRoleOrStageId = profile.role,
-                                        curatedResources = curatedResources,
-                                        wallPostsState = postsState,
-                                        onFetchStagePosts = onFetchStageCommunityPosts,
-                                        onSelectStage = { stage ->
-                                            onSwitchPersonaQuick(stage.stageId, stage.defaultAge)
-                                            onThemeColorSelect(stage.accentHex)
-                                        },
-                                        onOpenUrl = { launchWebUrl(it) },
-                                        onShareResourceToWall = { title, body ->
-                                            onCreatePost("Resource Guide", title, body)
-                                        },
-                                        onRecordSignal = onRecordLearnedSignal,
-                                        savedResourceIds = savedResourceIds,
-                                        onToggleSaveResource = { res ->
-                                            onToggleSaveResource(
-                                                res.id,
-                                                res.title,
-                                                res.subtitle,
-                                                res.badge,
-                                                res.url.orEmpty(),
-                                                res.category.label,
-                                                res.stageIds.firstOrNull() ?: profile.role
-                                            )
-                                        }
-                                    )
                                 }
 
                                 if (homeSection == "STAGE") {
@@ -1098,6 +995,29 @@ fun MainDashboardScreen(
                                                             modifier = Modifier.size(13.dp)
                                                         )
                                                     }
+                                                }
+                                                OutlinedButton(
+                                                    onClick = onOpenCreativePhotoStudio,
+                                                    shape = RoundedCornerShape(50),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                    border = BorderStroke(1.dp, CyberEmerald.copy(alpha = 0.75f)),
+                                                    modifier = Modifier
+                                                        .minimumInteractiveComponentSize()
+                                                        .testTag("home_dir_link_creative_photo_studio")
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CameraAlt,
+                                                        contentDescription = null,
+                                                        tint = CyberEmerald,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(
+                                                        text = "📸 Photo Studio",
+                                                        style = MaterialTheme.typography.labelMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = CyberEmerald
+                                                    )
                                                 }
                                             }
                                         }
@@ -1244,6 +1164,53 @@ fun MainDashboardScreen(
                                     }
                                 }
 
+                                // Full-Screen Creative Photo Studio Launch Banner
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.5.dp, HoloCyan.copy(alpha = 0.75f)),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("studio_tab_open_creative_photo_studio_card")
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "📸 Creative Photo Studio",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.ExtraBold
+                                            )
+                                            Text(
+                                                text = "Take photos with live camera, apply ${profile.role.replaceFirstChar { it.uppercase() }} persona filters & save to Local Gallery.",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Button(
+                                            onClick = onOpenCreativePhotoStudio,
+                                            shape = RoundedCornerShape(14.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = HoloCyan,
+                                                contentColor = Color.Black
+                                            ),
+                                            modifier = Modifier
+                                                .minimumInteractiveComponentSize()
+                                                .testTag("studio_tab_open_creative_photo_studio_btn")
+                                        ) {
+                                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Open Studio", fontWeight = FontWeight.ExtraBold)
+                                        }
+                                    }
+                                }
+
                                 if (studioSection == "ALL" || studioSection == "REELS") {
                                     VideoReelsComponent(
                                         currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
@@ -1284,7 +1251,6 @@ fun MainDashboardScreen(
                                         displayName = profile.displayName.ifBlank { "Jordan Vance" },
                                         currentProfileBitmap = customProfileBitmap,
                                         selected3DAvatarResId = selected3DAvatarResId,
-                                        userPersona = profile.role,
                                         onApplyToProfile = onUpdateProfileBitmap,
                                         onShareCreationToFeed = { category, title, content ->
                                             onCreatePost(category, title, content)
@@ -1342,7 +1308,6 @@ fun MainDashboardScreen(
                                     listOf(
                                         "3D_CUSTOMIZER" to "🧊 3D Customizer",
                                         "3D_PREVIEW" to "🧬 3D Persona Canvas",
-                                        "SAVED_RESOURCES" to "🔖 My Saved Resources (${savedResources.size})",
                                         "AVATARS" to "🎭 Avatars & Personas",
                                         "EDITOR" to "📝 Full Profile & Coins",
                                         "DATA_EXPORT" to "📥 Download Data",
@@ -1355,21 +1320,6 @@ fun MainDashboardScreen(
                                             modifier = Modifier.testTag("profile_link_${key.lowercase()}")
                                         )
                                     }
-                                }
-
-                                if (profileSection == "SAVED_RESOURCES") {
-                                    SavedResourcesProfileSection(
-                                        savedResources = savedResources,
-                                        onOpenResourceUrl = { launchWebUrl(it) },
-                                        onShareResourceToWall = { title, body ->
-                                            onCreatePost("Resource Guide", title, body)
-                                            onSelectTab(DashboardTab.HUB_3D)
-                                        },
-                                        onRemoveSavedResource = onRemoveSavedResource,
-                                        onExploreLifelineHub = {
-                                            onSelectTab(DashboardTab.RESOURCES)
-                                        }
-                                    )
                                 }
 
                                 if (profileSection == "3D_PREVIEW") {
@@ -1524,20 +1474,8 @@ fun MainDashboardScreen(
                                         onRewardHelpfulPostBonus = onRewardHelpfulPostBonus,
                                         onClaimBadgeQuest = onClaimBadgeQuest,
                                         onPurchaseOrApplyShopItem = onPurchaseOrApplyShopItem,
-                                        onTipCommunityUser = onTipCommunityUser
-                                    )
-
-                                    SavedResourcesProfileSection(
-                                        savedResources = savedResources,
-                                        onOpenResourceUrl = { launchWebUrl(it) },
-                                        onShareResourceToWall = { title, body ->
-                                            onCreatePost("Resource Guide", title, body)
-                                            onSelectTab(DashboardTab.HUB_3D)
-                                        },
-                                        onRemoveSavedResource = onRemoveSavedResource,
-                                        onExploreLifelineHub = {
-                                            onSelectTab(DashboardTab.RESOURCES)
-                                        }
+                                        onTipCommunityUser = onTipCommunityUser,
+                                        onOpenCreativePhotoStudio = onOpenCreativePhotoStudio
                                     )
                                 }
 
@@ -1747,19 +1685,7 @@ fun MainDashboardScreen(
                                         onDeleteCareerMilestone = onDeleteCareerMilestone,
                                         isBiometricUnlocked = isResourceHubUnlocked,
                                         onUnlockBiometric = onUnlockResourceHub,
-                                        onLockBiometric = onLockResourceHub,
-                                        savedResourceIds = savedResourceIds,
-                                        onToggleSaveResource = { item ->
-                                            onToggleSaveResource(
-                                                item.id,
-                                                item.title,
-                                                item.subtitle,
-                                                item.badge,
-                                                item.url,
-                                                item.tags.firstOrNull() ?: "Lifeline & Resource Hub",
-                                                item.roles.firstOrNull() ?: profile.role
-                                            )
-                                        }
+                                        onLockBiometric = onLockResourceHub
                                     )
                                 }
 
@@ -1791,7 +1717,7 @@ fun MainDashboardScreen(
                             }
 
                             DashboardTab.AI_TOOLS -> {
-                                var aiSection by rememberSaveable { mutableStateOf("BUILTIN") }
+                                var aiSection by rememberSaveable { mutableStateOf("STUDY") }
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1799,7 +1725,6 @@ fun MainDashboardScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     listOf(
-                                        "BUILTIN" to "✨ Built-In AI Tool",
                                         "STUDY" to "📚 AI Study Coach",
                                         "ADAPTIVE" to "🧠 Adaptive Mind",
                                         "VISION" to "🎨 AI Image & Voice"
@@ -1811,17 +1736,6 @@ fun MainDashboardScreen(
                                             modifier = Modifier.testTag("ai_link_${key.lowercase()}")
                                         )
                                     }
-                                }
-
-                                if (aiSection == "BUILTIN") {
-                                    com.example.ui.ai.AiBuiltInToolScreen(
-                                        userDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
-                                        userRole = profile.role,
-                                        onShareResultToWall = { title, body ->
-                                            onCreatePost("AI Insights", title, body)
-                                            onSelectTab(DashboardTab.HUB_3D)
-                                        }
-                                    )
                                 }
 
                                 if (aiSection == "STUDY") {
@@ -2080,34 +1994,6 @@ fun MainDashboardScreen(
                                 }
 
                                 if (safetySection == "COMMUNITY") {
-                                    PersonaCommunityHubView(
-                                        activeRoleOrStageId = profile.role,
-                                        curatedResources = curatedResources,
-                                        wallPostsState = postsState,
-                                        onFetchStagePosts = onFetchStageCommunityPosts,
-                                        onSelectStage = { stage ->
-                                            onSwitchPersonaQuick(stage.stageId, stage.defaultAge)
-                                            onThemeColorSelect(stage.accentHex)
-                                        },
-                                        onOpenUrl = { launchWebUrl(it) },
-                                        onShareResourceToWall = { title, body ->
-                                            onCreatePost("Resource Guide", title, body)
-                                        },
-                                        onRecordSignal = onRecordLearnedSignal,
-                                        savedResourceIds = savedResourceIds,
-                                        onToggleSaveResource = { res ->
-                                            onToggleSaveResource(
-                                                res.id,
-                                                res.title,
-                                                res.subtitle,
-                                                res.badge,
-                                                res.url.orEmpty(),
-                                                res.category.label,
-                                                res.stageIds.firstOrNull() ?: profile.role
-                                            )
-                                        }
-                                    )
-
                                     CommunityLifeStageHubCard(
                                         postsState = postsState,
                                         currentUserDisplayName = profile.displayName.ifBlank { "Jordan Vance" },
@@ -2570,6 +2456,24 @@ fun MainDashboardScreen(
                             )
                         }
                     }
+                    OutlinedButton(
+                        onClick = {
+                            showAllPagesSheet = false
+                            onOpenCreativePhotoStudio()
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.5.dp, CyberEmerald),
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .testTag("all_pages_sheet_link_creative_photo_studio")
+                    ) {
+                        Text(
+                            text = "📸 Creative Photo Studio",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = CyberEmerald
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -2978,8 +2882,7 @@ private fun ThreeDProfileAndFeedTab(
                             .clip(RoundedCornerShape(18.dp))
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.22f))
                             .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(18.dp))
-                            .clickable { onNavigateToThemeAndPhotoCreator() }
-                            .testTag("dashboard_profile_avatar_box"),
+                            .clickable { onNavigateToThemeAndPhotoCreator() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (customProfileBitmap != null) {
@@ -2987,43 +2890,24 @@ private fun ThreeDProfileAndFeedTab(
                                 bitmap = customProfileBitmap.asImageBitmap(),
                                 contentDescription = "User Profile Photo",
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .testTag("dashboard_profile_avatar_image")
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else if (selected3DAvatarResId != null) {
+                            Image(
+                                painter = painterResource(id = selected3DAvatarResId),
+                                contentDescription = "Selected 3D Avatar Portrait",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
                             )
                         } else {
-                            val resolvedAvatarResId = com.example.ui.components.resolveEffectiveAvatarResId(
-                                selected3DAvatarResId = selected3DAvatarResId,
-                                role = profile.role
-                            )
-                            Image(
-                                painter = painterResource(id = resolvedAvatarResId),
-                                contentDescription = if (selected3DAvatarResId != null) {
-                                    "Selected 3D Avatar Portrait"
-                                } else {
-                                    "Default 3D Placeholder Avatar for ${profile.role}"
-                                },
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .testTag("dashboard_profile_avatar_image")
-                            )
-                            if (selected3DAvatarResId == null) {
-                                Surface(
-                                    color = Color.Black.copy(alpha = 0.72f),
-                                    shape = RoundedCornerShape(topStart = 8.dp),
-                                    modifier = Modifier
-                                        .align(Alignment.BottomEnd)
-                                        .testTag("dashboard_profile_avatar_default_badge")
-                                ) {
-                                    Text(
-                                        text = "3D",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = HoloCyan,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
-                                    )
-                                }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(text = avatarEmojiBadge, style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    text = profile.displayName.take(2).uppercase(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Black
+                                )
                             }
                         }
                     }

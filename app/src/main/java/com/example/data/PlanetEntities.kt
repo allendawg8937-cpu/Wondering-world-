@@ -189,20 +189,6 @@ data class CareerMilestoneEntity(
     val updatedAtMillis: Long = System.currentTimeMillis()
 )
 
-@Entity(tableName = "saved_resources")
-data class SavedResourceEntity(
-    @PrimaryKey
-    val resourceId: String,
-    val userId: String = "primary_user",
-    val title: String,
-    val subtitle: String = "",
-    val badge: String = "VERIFIED RESOURCE",
-    val url: String = "",
-    val category: String = "Lifeline & Resource Hub",
-    val stageId: String = "all",
-    val createdAtMillis: Long = System.currentTimeMillis()
-)
-
 fun UserProfileEntity.toUserProfileState(): PlanetUserProfileState {
     return PlanetUserProfileState(
         profileId = profileId,

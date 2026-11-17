@@ -3,4 +3,7 @@
     <cache-path
         name="shared_quote_cards"
         path="quote_cards/" />
+    <files-path
+        name="creative_studio_gallery"
+        path="creative_studio_gallery/" />
 </paths>

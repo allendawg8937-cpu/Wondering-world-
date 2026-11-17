@@ -199,6 +199,7 @@ fun CreateThemeProfileScreen(
     onClaimBadgeQuest: (com.example.ui.components.CurrencyEarnBadgeQuest) -> Unit = {},
     onPurchaseOrApplyShopItem: (com.example.ui.components.CurrencySpendItem) -> Unit = {},
     onTipCommunityUser: (String, Long, String) -> Unit = { _, _, _ -> },
+    onOpenCreativePhotoStudio: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -443,6 +444,23 @@ fun CreateThemeProfileScreen(
         )
 
         // 0B. Creative Photo Studio (Camera Integration + Persona Filters & Overlays + Social Posts)
+        Button(
+            onClick = onOpenCreativePhotoStudio,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = HoloCyan,
+                contentColor = Color.Black
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .testTag("theme_profile_open_creative_studio_btn")
+        ) {
+            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Open Full Creative Photo Studio & Local Gallery", fontWeight = FontWeight.ExtraBold)
+        }
+
         CreativePhotoStudioCard(
             displayName = formState.displayName.ifBlank { "Wondering Explorer" },
             currentProfileBitmap = customProfileBitmap,
@@ -559,46 +577,34 @@ fun CreateThemeProfileScreen(
                                 .testTag("theme_profile_avatar_preview"),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (customProfileBitmap != null) {
-                                Image(
-                                    bitmap = customProfileBitmap.asImageBitmap(),
-                                    contentDescription = "Custom Profile Photo",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .testTag("theme_profile_avatar_image")
-                                )
-                            } else {
-                                val resolvedAvatarResId = com.example.ui.components.resolveEffectiveAvatarResId(
-                                    selected3DAvatarResId = selected3DAvatarResId,
-                                    role = formState.role
-                                )
-                                Image(
-                                    painter = painterResource(id = resolvedAvatarResId),
-                                    contentDescription = if (selected3DAvatarResId != null) {
-                                        "Selected 3D Avatar Portrait"
-                                    } else {
-                                        "Default 3D Placeholder Avatar for ${formState.role}"
-                                    },
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .testTag("theme_profile_avatar_image")
-                                )
-                                if (selected3DAvatarResId == null) {
-                                    Surface(
-                                        color = Color.Black.copy(alpha = 0.72f),
-                                        shape = RoundedCornerShape(bottomEnd = 10.dp),
-                                        modifier = Modifier
-                                            .align(Alignment.TopStart)
-                                            .testTag("theme_profile_avatar_default_badge")
-                                    ) {
+                            when {
+                                customProfileBitmap != null -> {
+                                    Image(
+                                        bitmap = customProfileBitmap.asImageBitmap(),
+                                        contentDescription = "Custom Profile Photo",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                selected3DAvatarResId != null -> {
+                                    Image(
+                                        painter = painterResource(id = selected3DAvatarResId),
+                                        contentDescription = "Selected 3D Avatar Portrait",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                                else -> {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
-                                            text = "Default",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = HoloCyan,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            text = avatarEmojiBadge,
+                                            style = MaterialTheme.typography.titleLarge
+                                        )
+                                        Text(
+                                            text = formState.displayName.take(2).uppercase(),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = activeAccent,
+                                            fontWeight = FontWeight.Black
                                         )
                                     }
                                 }

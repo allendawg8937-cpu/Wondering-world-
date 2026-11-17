@@ -87,30 +87,5 @@ class LifeStage3DAvatarPreviewScreenTest {
 
         assertEquals(DashboardLifeStage.VETERAN, appliedStage)
         composeRule.onNodeWithTag("avatar_preview_status_text").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag("avatar_3d_default_placeholder_thumb", useUnmergedTree = true)
-            .performScrollTo()
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun defaultPersonaPlaceholderAvatars_provideSixDistinct3DPlaceholdersAndPreserveCustomSelections() {
-        val roles = listOf("kid", "teen", "student", "adult", "business", "veteran")
-        val placeholders = roles.map { role ->
-            com.example.ui.components.defaultPlaceholderAvatarResIdForRole(role)
-        }
-
-        assertEquals(6, placeholders.distinct().size)
-        roles.forEach { role ->
-            assertEquals(
-                com.example.ui.components.defaultPlaceholderAvatarResIdForRole(role),
-                com.example.ui.components.resolveEffectiveAvatarResId(selected3DAvatarResId = null, role = role)
-            )
-        }
-
-        val customResId = com.example.R.drawable.img_avatar_cyber_astronaut
-        assertEquals(
-            customResId,
-            com.example.ui.components.resolveEffectiveAvatarResId(selected3DAvatarResId = customResId, role = "teen")
-        )
     }
 }

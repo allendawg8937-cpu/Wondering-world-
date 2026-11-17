@@ -134,18 +134,6 @@ interface PlanetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertCareerMilestones(milestones: List<CareerMilestoneEntity>)
-
-    @Query("SELECT * FROM saved_resources ORDER BY createdAtMillis DESC")
-    fun observeSavedResources(): Flow<List<SavedResourceEntity>>
-
-    @Query("SELECT * FROM saved_resources ORDER BY createdAtMillis DESC")
-    suspend fun getAllSavedResourcesOnce(): List<SavedResourceEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertSavedResource(resource: SavedResourceEntity)
-
-    @Query("DELETE FROM saved_resources WHERE resourceId = :resourceId")
-    suspend fun deleteSavedResource(resourceId: String)
 }
 
 @Database(
@@ -154,10 +142,9 @@ interface PlanetDao {
         FinancialTrackerEntryEntity::class,
         PersonaStageEntity::class,
         Profile3DConfigEntity::class,
-        CareerMilestoneEntity::class,
-        SavedResourceEntity::class
+        CareerMilestoneEntity::class
     ],
-    version = 4,
+    version = 3,
     exportSchema = false
 )
 abstract class PlanetDatabase : RoomDatabase() {

@@ -1474,10 +1474,10 @@ fun CreativePhotoStudioCard(
         }
     }
 
-    // Initial base bitmap in the studio (either user's current photo or persona default 3D placeholder)
-    var studioSourceBitmap by remember(currentProfileBitmap, selected3DAvatarResId, userPersona) {
+    // Initial base bitmap in the studio (either user's current photo or default 3D avatar resource)
+    var studioSourceBitmap by remember(currentProfileBitmap, selected3DAvatarResId) {
         val initial = currentProfileBitmap ?: run {
-            val resId = resolveEffectiveAvatarResId(selected3DAvatarResId, userPersona)
+            val resId = selected3DAvatarResId ?: R.drawable.img_avatar_cyber_astronaut
             BitmapFactory.decodeResource(context.resources, resId)
         }
         mutableStateOf(initial)

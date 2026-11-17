@@ -304,41 +304,6 @@ service cloud.firestore {
             && isValidId(data.postOwnerId);
         }
       }
-
-      match /saved_resources/{resourceId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId)
-          && isValidId(resourceId)
-          && isValidSavedResource(request.resource.data, resourceId)
-          && request.resource.data.createdAt is timestamp
-          && request.resource.data.createdAt <= request.time;
-        allow update: if isOwner(userId)
-          && isValidId(resourceId)
-          && isValidSavedResource(request.resource.data, resourceId)
-          && request.resource.data.userId == resource.data.userId
-          && request.resource.data.resourceId == resource.data.resourceId
-          && request.resource.data.createdAt == resource.data.createdAt;
-        allow delete: if isOwner(userId) && isValidId(resourceId);
-
-        function isValidSavedResource(data, expectedResourceId) {
-          return data.keys().hasAll([
-              'userId', 'resourceId', 'title', 'subtitle', 'badge',
-              'url', 'category', 'stageId', 'createdAt'
-            ])
-            && data.keys().hasOnly([
-              'userId', 'resourceId', 'title', 'subtitle', 'badge',
-              'url', 'category', 'stageId', 'createdAt'
-            ])
-            && data.userId == request.auth.uid
-            && data.resourceId == expectedResourceId
-            && data.title is string && data.title.size() >= 1 && data.title.size() <= 160
-            && data.subtitle is string && data.subtitle.size() <= 500
-            && data.badge is string && data.badge.size() <= 80
-            && data.url is string && data.url.size() <= 400
-            && data.category is string && data.category.size() <= 80
-            && data.stageId is string && data.stageId.size() <= 40;
-        }
-      }
     }
 
     // --- Friend Requests Collection ---

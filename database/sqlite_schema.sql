@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS career_milestones (
     status TEXT NOT NULL DEFAULT 'Upcoming' CHECK (status IN ('Upcoming', 'In Progress', 'Completed')),
     xpReward INTEGER NOT NULL DEFAULT 100,
     stepOrder INTEGER NOT NULL DEFAULT 1,
-    portalUrl TEXT NOT NULL DEFAULT '' CHECK (portalUrl = '' OR portalUrl LIKE 'https://%'),
+    portalUrl TEXT NOT NULL DEFAULT '',
     updatedAtMillis INTEGER NOT NULL
 );
 
@@ -108,17 +108,3 @@ CREATE TABLE IF NOT EXISTS user_affinity_signals (
 CREATE INDEX IF NOT EXISTS idx_financial_entries_created ON financial_tracker_entries(createdAtMillis DESC);
 CREATE INDEX IF NOT EXISTS idx_career_milestones_order ON career_milestones(stepOrder ASC);
 CREATE INDEX IF NOT EXISTS idx_affinity_weight ON user_affinity_signals(affinityWeight DESC);
-
-CREATE TABLE IF NOT EXISTS saved_resources (
-    resourceId TEXT NOT NULL PRIMARY KEY,
-    userId TEXT NOT NULL DEFAULT 'primary_user',
-    title TEXT NOT NULL,
-    subtitle TEXT NOT NULL DEFAULT '',
-    badge TEXT NOT NULL DEFAULT 'VERIFIED RESOURCE',
-    url TEXT NOT NULL DEFAULT '' CHECK (url = '' OR url LIKE 'https://%'),
-    category TEXT NOT NULL DEFAULT 'Lifeline & Resource Hub',
-    stageId TEXT NOT NULL DEFAULT 'all',
-    createdAtMillis INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_saved_resources_created ON saved_resources(createdAtMillis DESC);

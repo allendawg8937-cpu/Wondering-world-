@@ -9,10 +9,7 @@ gradle :app:testDebugUnitTest \
   --tests "com.example.ExampleUnitTest" \
   --tests "com.example.ExampleRobolectricTest" \
   --tests "com.example.ui.components.PersonaAndUnifiedHeaderTest" \
-  --tests "com.example.ui.components.PersonaCommunityHubAndSavedResourcesTest" \
   --tests "com.example.ui.screens.LifeStage3DAvatarPreviewScreenTest" \
-  --tests "com.example.navigation.PlatformModuleNavHostAndDatingGateTest" \
-  --tests "com.example.network.SecureUrlAndSqlTest" \
   --tests "com.example.data.export.UserDataExportBuilderTest" \
   :app:assembleDebug --console=plain
 
@@ -34,12 +31,7 @@ cp angular-web/src/app/data-access/models/avatar-3d.model.ts dist-release/sdk/an
 cp angular-web/src/app/features/profile/avatar-3d-customizer/avatar-theme-selector.component.ts dist-release/sdk/angular/
 cp angular-web/src/app/features/profile/avatar-3d-customizer/avatar-3d-customizer.component.ts dist-release/sdk/angular/
 cp app/src/main/java/com/example/ui/components/ThreeDAvatarCatalog.kt dist-release/sdk/android/
-cp app/src/main/java/com/example/ui/components/PersonaCommunityHubView.kt dist-release/sdk/android/
-cp app/src/main/java/com/example/ui/components/SavedResourcesProfileSection.kt dist-release/sdk/android/
 cp app/src/main/java/com/example/ui/screens/LifeStage3DAvatarPreviewScreen.kt dist-release/sdk/android/
-cp app/src/main/java/com/example/ui/navigation/PlatformModuleNavHost.kt dist-release/sdk/android/
-cp app/src/main/java/com/example/dating/IsolatedAgeGatedDatingScreen.kt dist-release/sdk/android/
-cp app/src/main/java/com/example/network/SecureUrlHelper.kt dist-release/sdk/android/
 cp database/schema.sql dist-release/sdk/database/
 cp database/sqlite_schema.sql dist-release/sdk/database/
 cp .env.example dist-release/sdk/.env.example

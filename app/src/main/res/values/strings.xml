@@ -26,4 +26,7 @@
     <string name="avatar_preview_screen_title">3D Persona Avatar Studio</string>
     <string name="avatar_preview_choose_stage">Toggle Life Stage Persona to Update 3D Model</string>
     <string name="avatar_preview_back_desc">Back to previous screen</string>
+    <string name="creative_studio_title">Creative Photo Studio</string>
+    <string name="creative_studio_subtitle">Capture photos with persona-tailored filters &amp; save to your local gallery</string>
+    <string name="creative_studio_back_desc">Back to dashboard</string>
 </resources>

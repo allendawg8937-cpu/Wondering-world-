@@ -35,7 +35,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.data.model.UserProfile
 import com.example.data.repository.WonderingWorldRepository
 import com.example.ui.AppNavScreen
 import com.example.ui.DashboardTab
@@ -47,11 +46,11 @@ import com.example.ui.components.BackgroundMusicAudioEngine
 import com.example.ui.components.GlobalLoadingOverlay
 import com.example.ui.components.PullDownNavigationBar
 import com.example.ui.components.ThreeDimensionalBackground
-import com.example.ui.navigation.PlatformModuleNavHost
 import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.MainDashboardScreen
 import com.example.ui.screens.SignUpScreen
 import com.example.ui.screens.FriendsAndDiscoveryScreen
+import com.example.ui.screens.CreativePhotoStudioScreen
 import com.example.ui.theme.WonderingWorldTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -63,44 +62,30 @@ import androidx.compose.runtime.mutableIntStateOf
 
 class MainActivity : FragmentActivity() {
     private var appIconLaunchSignal by mutableIntStateOf(0)
-    private var pendingDeepLinkUri by mutableStateOf<android.net.Uri?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // STEP 1: Configure App Check with launch intent before any UI or Firebase operations
         configureAppCheck(this, intent)
-        pendingDeepLinkUri = intent?.data
 
         window.setBackgroundDrawableResource(android.R.color.transparent)
         enableEdgeToEdge()
         setContent {
-            WonderingWorldRoot(
-                appIconLaunchSignal = appIconLaunchSignal,
-                deepLinkUri = pendingDeepLinkUri,
-                onDeepLinkConsumed = { pendingDeepLinkUri = null }
-            )
+            WonderingWorldRoot(appIconLaunchSignal = appIconLaunchSignal)
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.data != null) {
-            pendingDeepLinkUri = intent.data
-        } else {
-            // Whenever the user taps the app launcher icon or shortcut, pop up the Login & Create Account page
-            appIconLaunchSignal++
-        }
+        // Whenever the user taps the app launcher icon or shortcut, pop up the Login & Create Account page
+        appIconLaunchSignal++
     }
 }
 
 @Composable
-fun WonderingWorldRoot(
-    appIconLaunchSignal: Int = 0,
-    deepLinkUri: android.net.Uri? = null,
-    onDeepLinkConsumed: () -> Unit = {}
-) {
+fun WonderingWorldRoot(appIconLaunchSignal: Int = 0) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val credentialManager = remember(context) { CredentialManager.create(context) }
@@ -168,28 +153,9 @@ fun WonderingWorldRoot(
     val authPortalActiveLink by viewModel.authPortalActiveLink.collectAsStateWithLifecycle()
     val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
 
-    // Pop up the Login & Create Account page every time the app icon is hit unless a trusted URL deep link arrived
-    LaunchedEffect(appIconLaunchSignal, deepLinkUri) {
-        val targetTab = com.example.network.SecureUrlHelper.resolveDashboardTabFromUri(deepLinkUri)
-        if (targetTab != null) {
-            val stageParam = deepLinkUri?.getQueryParameter("stage")
-            if (!stageParam.isNullOrBlank()) {
-                val persona = com.example.data.StagesOfLifePersona.fromRoleOrName(stageParam)
-                viewModel.switchPersonaQuick(persona.roleKey, when (persona) {
-                    com.example.data.StagesOfLifePersona.KID -> 10L
-                    com.example.data.StagesOfLifePersona.TEEN -> 15L
-                    com.example.data.StagesOfLifePersona.STUDENT -> 20L
-                    com.example.data.StagesOfLifePersona.ADULT -> 28L
-                    com.example.data.StagesOfLifePersona.BUSINESS -> 34L
-                    com.example.data.StagesOfLifePersona.VETERAN -> 38L
-                })
-            }
-            viewModel.selectDashboardTab(targetTab)
-            viewModel.navigateToMainDashboard(preserveSelectedTheme = true)
-            onDeepLinkConsumed()
-        } else {
-            viewModel.navigateToLogin()
-        }
+    // Pop up the Login & Create Account page every time the app icon is hit
+    LaunchedEffect(appIconLaunchSignal) {
+        viewModel.navigateToLogin()
     }
     var reportTargetInfo by remember { mutableStateOf<Pair<String, String>?>(null) }
     val signUpForm by viewModel.signUpForm.collectAsStateWithLifecycle()
@@ -312,6 +278,9 @@ fun WonderingWorldRoot(
                     onNavigateToDashboardTab = { targetTab ->
                         viewModel.selectDashboardTab(targetTab)
                         viewModel.navigateToMainDashboard()
+                    },
+                    onNavigateToCreativePhotoStudio = {
+                        viewModel.navigateToCreativePhotoStudio()
                     },
                     onSelectAgeGroup = { preset ->
                         viewModel.switchPersonaQuick(preset.role, preset.age)
@@ -475,27 +444,7 @@ fun WonderingWorldRoot(
                             val friendsState by viewModel.friendsState.collectAsStateWithLifecycle()
                             val requestsState by viewModel.incomingRequestsState.collectAsStateWithLifecycle()
                             val discoveredUsers by viewModel.discoveredUsers.collectAsStateWithLifecycle()
-                            val savedResources by viewModel.savedResourcesState.collectAsStateWithLifecycle()
-                            val activeProfileForModules = (userProfileState as? UiState.Success)?.data
-                                ?: UserProfile(
-                                    displayName = signUpForm.displayName.ifBlank { "Jordan Vance" },
-                                    role = signUpForm.role,
-                                    age = signUpForm.ageText.toLongOrNull() ?: 26L,
-                                    location = signUpForm.location
-                                )
 
-                            PlatformModuleNavHost(
-                                userProfile = activeProfileForModules,
-                                customProfileBitmap = customProfileBitmap,
-                                selected3DAvatarResId = selected3DAvatarResId,
-                                budgetState = budgetEntriesState,
-                                virtualCurrencyBalance = virtualCurrencyBalance,
-                                onApplyPhotoBitmap = viewModel::updateCustomProfileBitmap,
-                                onAddBudgetItem = viewModel::addBudgetItem,
-                                onDeleteBudgetItem = viewModel::deleteBudgetItem,
-                                onShareToCommunityWall = viewModel::createPost,
-                                onLogModuleInteraction = viewModel::logUserInteraction
-                            ) { navigateToModule ->
                             MainDashboardScreen(
                                 activeTab = activeTab,
                                 onSelectTab = viewModel::selectDashboardTab,
@@ -629,6 +578,7 @@ fun WonderingWorldRoot(
                                 onUnlockResourceHub = viewModel::unlockResourceHub,
                                 onLockResourceHub = viewModel::lockResourceHub,
                                 onNavigateToFriendsDiscovery = viewModel::navigateToFriendsDiscovery,
+                                onOpenCreativePhotoStudio = viewModel::navigateToCreativePhotoStudio,
                                 virtualCurrencyBalance = virtualCurrencyBalance,
                                 dailyBonusClaimed = dailyLoginBonusClaimed,
                                 loginStreakDays = loginStreakDays,
@@ -662,14 +612,8 @@ fun WonderingWorldRoot(
                                         credentialManager = credentialManager,
                                         scope = scope
                                     )
-                                },
-                                savedResources = savedResources,
-                                onToggleSaveResource = viewModel::toggleSaveResource,
-                                onRemoveSavedResource = viewModel::removeSavedResource,
-                                onFetchStageCommunityPosts = viewModel::fetchCommunityPostsForStage,
-                                onNavigateToModule = navigateToModule
+                                }
                             )
-                            }
                         }
 
                         AppNavScreen.FRIENDS_DISCOVERY -> {
@@ -697,6 +641,26 @@ fun WonderingWorldRoot(
                                 blockedUsers = blockedUsers,
                                 onBlockUser = viewModel::blockCommunityUser,
                                 onBack = { viewModel.navigateToMainDashboard() }
+                            )
+                        }
+
+                        AppNavScreen.CREATIVE_PHOTO_STUDIO -> {
+                            CreativePhotoStudioScreen(
+                                displayName = loadedProfile?.displayName ?: signUpForm.displayName.ifBlank { "Jordan Vance" },
+                                currentRole = currentRole,
+                                currentProfileBitmap = customProfileBitmap,
+                                selected3DAvatarResId = selected3DAvatarResId,
+                                onSwitchPersonaStage = viewModel::switchPersonaQuick,
+                                onApplyToProfileAvatar = viewModel::updateCustomProfileBitmap,
+                                onShareCreationToFeed = { category, title, content ->
+                                    viewModel.createPost(category, title, content)
+                                    viewModel.selectDashboardTab(DashboardTab.HUB_3D)
+                                    viewModel.navigateToMainDashboard()
+                                },
+                                onLogStudioInteraction = { detail ->
+                                    viewModel.logUserInteraction("PhotoStudio", detail, "Studio")
+                                },
+                                onBack = { viewModel.navigateBackFromCreativePhotoStudio() }
                             )
                         }
                     }

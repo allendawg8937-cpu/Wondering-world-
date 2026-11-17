@@ -41,6 +41,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Brush
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.ExpandLess
@@ -335,6 +336,7 @@ fun PullDownNavigationBar(
     onNavigateToLogin: () -> Unit,
     onNavigateToSignUp: () -> Unit,
     onNavigateToDashboardTab: (DashboardTab) -> Unit,
+    onNavigateToCreativePhotoStudio: () -> Unit = {},
     onSelectAgeGroup: (AgeGroupPreset) -> Unit,
     onSelectPageColor: (String) -> Unit,
     onSelectVisualStyle: (String) -> Unit = {},
@@ -388,6 +390,7 @@ fun PullDownNavigationBar(
                 DashboardTab.MAINTENANCE_SETTINGS -> "Settings & Downloads"
             }
             AppNavScreen.FRIENDS_DISCOVERY -> "Find Friends"
+            AppNavScreen.CREATIVE_PHOTO_STUDIO -> "Creative Photo Studio"
         }
     }
 
@@ -773,6 +776,19 @@ fun PullDownNavigationBar(
                                 }
                             )
                         }
+
+                        PullDownDestinationChip(
+                            icon = Icons.Default.CameraAlt,
+                            label = "Creative Photo Studio (Persona Camera & Gallery)",
+                            accent = HoloCyan,
+                            selected = effectiveScreen == AppNavScreen.CREATIVE_PHOTO_STUDIO,
+                            tag = "pull_nav_creative_photo_studio",
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                onNavigateToCreativePhotoStudio()
+                                isNavPulledDown = false
+                            }
+                        )
 
                         // 2-Column Grid of All 9 Platform Pages (Each Page Change Auto-Shifts Theme & Color!)
                         Text(

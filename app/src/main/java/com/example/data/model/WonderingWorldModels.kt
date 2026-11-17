@@ -151,20 +151,6 @@ data class ResourceDirectoryItem(
     val tags: List<String>
 )
 
-@IgnoreExtraProperties
-data class SavedResource(
-    @DocumentId val id: String = "",
-    val userId: String = "",
-    val resourceId: String = "",
-    val title: String = "",
-    val subtitle: String = "",
-    val badge: String = "VERIFIED RESOURCE",
-    val url: String = "",
-    val category: String = "Resource Hub",
-    val stageId: String = "all",
-    @ServerTimestamp val createdAt: Timestamp? = null
-)
-
 data class CommunityConnectionCard(
     val id: String,
     val name: String,

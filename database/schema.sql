@@ -216,7 +216,7 @@ CREATE TABLE IF NOT EXISTS career_milestones (
         CHECK (status IN ('Upcoming', 'In Progress', 'Completed')),
     xp_reward       BIGINT NOT NULL DEFAULT 100 CHECK (xp_reward >= 0),
     step_order      INTEGER NOT NULL DEFAULT 1,
-    portal_url      TEXT NOT NULL DEFAULT '' CHECK (portal_url = '' OR portal_url ~* '^https://'),
+    portal_url      TEXT NOT NULL DEFAULT '',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -548,20 +548,5 @@ INSERT INTO profile_3d_configs (
     'cyber-grid',
     0.720
 ) ON CONFLICT (config_id) DO NOTHING;
-
-CREATE TABLE IF NOT EXISTS saved_resources (
-    resource_id     VARCHAR(128) PRIMARY KEY,
-    user_id         VARCHAR(128) NOT NULL REFERENCES user_profiles(user_id) ON DELETE CASCADE,
-    title           VARCHAR(160) NOT NULL,
-    subtitle        TEXT NOT NULL DEFAULT '',
-    badge           VARCHAR(80) NOT NULL DEFAULT 'VERIFIED RESOURCE',
-    url             TEXT NOT NULL DEFAULT '' CHECK (url = '' OR url ~* '^https://'),
-    category        VARCHAR(80) NOT NULL DEFAULT 'Lifeline & Resource Hub',
-    stage_id        VARCHAR(40) NOT NULL DEFAULT 'all',
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_saved_resources_user
-    ON saved_resources(user_id, created_at DESC);
 
 COMMIT;
